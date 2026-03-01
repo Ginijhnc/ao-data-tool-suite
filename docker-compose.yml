@@ -12,3 +12,14 @@ services:
       - ${CHARFILE_DIR}:/ao-server/Charfile:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
+
+  test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - TESTCONTAINERS_RYUK_DISABLED=true
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
