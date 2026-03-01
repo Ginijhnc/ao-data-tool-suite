@@ -1,0 +1,24 @@
+[package]
+name = "ao_data_to_sql"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "ao_data_to_sql"
+path = "src/main.rs"
+
+[dependencies]
+ao_shared = { path = "../ao_shared" }
+tokio.workspace = true
+sqlx.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+encoding_rs.workspace = true
+clap.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+rayon.workspace = true
+walkdir.workspace = true
+dotenvy.workspace = true
+anyhow.workspace = true
+thiserror.workspace = true
