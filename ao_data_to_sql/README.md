@@ -44,6 +44,17 @@ The `characters` table is created automatically with:
 - `name` (VARCHAR, UNIQUE) - Character name from filename
 - `data` (JSONB) - All character data as flexible JSON
 
+### Testing
+
+Tests run inside a Docker container. The test container spawns a temporary PostgreSQL instance via testcontainers, runs the actual binary against it, and cleans up automatically.
+
+```bash
+docker compose up --build test                                                 # Run all workspace tests
+docker compose run --rm test cargo test --package ao_data_to_sql               # Run using cached image
+docker compose run --rm --build test cargo test --package ao_data_to_sql       # Rebuild and run (use after modifying test files)
+docker compose run --rm test cargo test --package ao_data_to_sql <name>        # Run specific test by name
+```
+
 ### Key Design Decisions
 
 **JSONB Storage**: Character data is stored as JSONB in PostgreSQL instead of rigid table schemas. This handles the "fork problem" - hundreds of AO forks have modified the data structure by adding custom fields over the years. Non-technical users can run this tool without modifying type definitions.
