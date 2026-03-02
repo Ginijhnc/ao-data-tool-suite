@@ -5,6 +5,9 @@ use pretty_assertions::assert_eq;
 
 use crate::common::{crate_dir, setup_test_db, with_test_db_env};
 
+/// Subdirectory of fixtures for characters
+pub const CHARACTER_FIXTURES: &str = "characters";
+
 /// Helper that verifies the number of characters in the database
 pub async fn verify_character_count(expected_character_count: i64) {
     let (container, pool) = setup_test_db().await;
