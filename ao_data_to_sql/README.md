@@ -23,10 +23,22 @@ All commands must be run from the `ao-data-tool-suite` workspace root directory.
 createdb -U postgres ao_server_data
 ```
 
-**2. Run:**
+**2. Run (with Docker):**
 
 ```bash
 docker compose up --build parser
+```
+
+**2b. Run (without Docker):**
+
+```bash
+cargo run --release --package ao_data_to_sql
+```
+
+Or with custom options:
+
+```bash
+cargo run --release --package ao_data_to_sql -- --charfile-dir ./path/to/Charfile --batch-size 500
 ```
 
 **3. Rollback migrations (optional):**
@@ -46,6 +58,8 @@ The `characters` table is created automatically with:
 
 ### Testing
 
+**4a. Testing (in Docker container):**
+
 Tests run inside a Docker container. The test container spawns a temporary PostgreSQL instance via testcontainers, runs the actual binary against it, and cleans up automatically.
 
 ```bash
@@ -53,6 +67,16 @@ docker compose up --build test                                                 #
 docker compose run --rm test cargo test --package ao_data_to_sql               # Run using cached image
 docker compose run --rm --build test cargo test --package ao_data_to_sql       # Rebuild and run (use after modifying test files)
 docker compose run --rm test cargo test --package ao_data_to_sql <name>        # Run specific test by name
+```
+
+**4b. Testing (locally):**
+
+Requires Docker to be running (testcontainers spawns a temporary PostgreSQL instance).
+
+```bash
+cargo test --package ao_data_to_sql                  # Run all tests
+cargo test --package ao_data_to_sql <name>           # Run specific test by name
+cargo test --package ao_data_to_sql -- --nocapture   # Run with output visible
 ```
 
 ### Key Design Decisions

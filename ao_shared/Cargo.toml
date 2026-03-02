@@ -2,8 +2,15 @@
 name = "ao_shared"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Shared utilities for AO tools"
 
 [dependencies]
 sqlx.workspace = true
 tokio.workspace = true
 thiserror.workspace = true
+
+[lints]
+workspace = true
