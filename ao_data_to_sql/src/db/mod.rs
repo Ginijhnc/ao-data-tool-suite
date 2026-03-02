@@ -5,8 +5,8 @@
 //! - `objects` - obj.dat
 //! - `npcs` - NPCs.dat
 //! - `spells` - Hechizos.dat
-//! - `crafting` - ObjCarpintero, ArmadurasHerrero, ArmasHerrero
+//! - `crafting` - `ObjCarpintero`, `ArmadurasHerrero`, `ArmasHerrero`
 
 mod characters;
 
-pub use characters::insert_characters_batch;
+pub use characters::insert_charfiles;

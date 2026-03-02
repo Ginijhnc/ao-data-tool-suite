@@ -171,3 +171,48 @@ Use `//!` for module/crate docs and `///` for item docs (functions, structs, enu
 | `docker`   | -                      | Dockerfile and container configuration     |
 | `deps`     | -                      | Dependency updates                         |
 | `ci`       | -                      | CI/CD pipelines                            |
+| `tooling`  | -                      | Linting, formatting, workspace config      |
+
+## Development Commands
+
+### Building
+
+```bash
+cargo build --workspace                # Build all crates (debug)
+cargo build -p ao_data_to_sql          # Build a specific crate
+cargo build --workspace -v             # Build with verbose output
+cargo check --workspace                # Type-check without producing binaries (faster)
+```
+
+### Code Formatting
+
+```bash
+cargo fmt --all                        # Format all crates
+cargo fmt --all --check                # Check formatting without modifying files
+cargo fmt -p ao_data_to_sql            # Format a specific crate
+```
+
+### Linting
+
+```bash
+cargo clippy --workspace               # Run clippy on all crates
+cargo clippy -p ao_data_to_sql         # Lint a specific crate
+```
+
+### Testing
+
+```bash
+cargo test --workspace                 # Run all tests
+cargo test -p ao_data_to_sql           # Run tests for a specific crate
+cargo test -p ao_data_to_sql <name>    # Run a specific test by name
+cargo test --workspace -- --nocapture  # Run tests with stdout visible
+```
+
+### Documentation
+
+```bash
+cargo doc --workspace --no-deps        # Build docs for all crates
+cargo doc --workspace --no-deps --open # Build and open in browser
+cargo doc -p ao_data_to_sql            # Build docs for a specific crate
+RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps  # Fail on doc warnings
+```

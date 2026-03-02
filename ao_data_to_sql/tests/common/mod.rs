@@ -1,7 +1,9 @@
-use sqlx::PgPool;
 use std::path::PathBuf;
 use std::process::Command;
-use testcontainers::{runners::AsyncRunner, ContainerAsync};
+
+use sqlx::PgPool;
+use testcontainers::ContainerAsync;
+use testcontainers::runners::AsyncRunner;
 use testcontainers_modules::postgres::Postgres;
 
 fn get_docker_host() -> &'static str {
@@ -28,10 +30,8 @@ pub async fn setup_test_db() -> (ContainerAsync<Postgres>, PgPool) {
     let host_port = container.get_host_port_ipv4(5432).await.unwrap();
     let host = get_docker_host();
 
-    let url = format!(
-        "postgres://postgres:postgres@{}:{}/postgres",
-        host, host_port
-    );
+    let url =
+        format!("postgres://postgres:postgres@{host}:{host_port}/postgres");
     let pool = PgPool::connect(&url).await.unwrap();
 
     sqlx::migrate!("./migrations").run(&pool).await.unwrap();

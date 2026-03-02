@@ -7,5 +7,5 @@
 //! - `spells` - Hechizos.dat
 //! - `cities` - Ciudades.dat
 //! - `balance` - Balance.dat
-//! - `crafting` - ArmadurasHerrero, ArmasHerrero, ObjCarpintero
+//! - `crafting` - `ArmadurasHerrero`, `ArmasHerrero`, `ObjCarpintero`
 //! - `factions` - ArmadurasFaccionarias.dat

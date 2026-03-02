@@ -1,6 +1,6 @@
-//! # ao_data_to_sql
+//! # `ao_data_to_sql`
 //!
-//! Imports Argentum Online game data files into PostgreSQL.
+//! Imports Argentum Online game data files into `PostgreSQL`.
 //!
 //! ## Supported File Types
 //!
@@ -11,29 +11,35 @@
 mod db;
 mod parsers;
 
-use anyhow::{Context, Result};
-use parsers::characters::{CharfileParser, ParsedCharfile};
-use clap::Parser;
-use rayon::prelude::*;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::Instant;
-use tracing::{error, info, warn};
-use walkdir::WalkDir;
 
+use anyhow::{Context, Result};
+use clap::Parser;
+use sqlx::PgPool;
+use tracing::{info, warn};
+
+use db::insert_charfiles;
+use parsers::characters::{discover_chr_files, parse_charfiles};
+
+/// CLI arguments for the import tool.
 #[derive(Parser, Debug)]
 #[command(name = "ao_data_to_sql")]
 #[command(about = "Importa archivos de Argentum Online a PostgreSQL")]
 struct Args {
+    /// Directory containing .CHR character files.
     #[arg(short, long, env = "CHARFILE_DIR", default_value = "./Charfile")]
     charfile_dir: PathBuf,
 
+    /// Number of records per database batch insert.
     #[arg(short, long, env = "BATCH_SIZE", default_value = "100")]
     batch_size: usize,
 
+    /// Number of parsing threads (0 = auto-detect CPU cores).
     #[arg(short, long, env = "THREADS", default_value = "0")]
     threads: usize,
 
+    /// Rollback migrations instead of applying them.
     #[arg(
         long,
         default_value = "false",
@@ -41,6 +47,7 @@ struct Args {
     )]
     rollback: bool,
 
+    /// Target migration version for rollback (0 = rollback all).
     #[arg(
         long,
         default_value = "0",
@@ -51,6 +58,23 @@ struct Args {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    run().await
+}
+
+/// Main application entry point that orchestrates the import process.
+async fn run() -> Result<()> {
+    let args = init()?;
+    let pool = setup_database(&args).await?;
+
+    if args.rollback {
+        return Ok(());
+    }
+
+    import_characters(&pool, &args).await
+}
+
+/// Initializes logging, loads environment, and parses CLI arguments.
+fn init() -> Result<Args> {
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::from_default_env()
@@ -62,8 +86,6 @@ async fn main() -> Result<()> {
 
     let args = Args::parse();
 
-    let total_start = Instant::now();
-
     if args.threads > 0 {
         rayon::ThreadPoolBuilder::new()
             .num_threads(args.threads)
@@ -71,6 +93,11 @@ async fn main() -> Result<()> {
             .context("Error configurando pool de hilos")?;
     }
 
+    Ok(args)
+}
+
+/// Connects to the database and runs or rolls back migrations.
+async fn setup_database(args: &Args) -> Result<PgPool> {
     let pool = ao_shared::create_pool(10)
         .await
         .context("Error conectando a la base de datos")?;
@@ -89,15 +116,21 @@ async fn main() -> Result<()> {
             "Migraciones revertidas hasta version {}",
             args.rollback_target
         );
-        return Ok(());
+    } else {
+        migrator
+            .run(&pool)
+            .await
+            .context("Error ejecutando migraciones")?;
     }
 
-    migrator
-        .run(&pool)
-        .await
-        .context("Error ejecutando migraciones")?;
+    Ok(pool)
+}
 
-    let chr_files = discover_chr_files(&args.charfile_dir)?;
+/// Discovers, parses, and inserts character files into the database.
+async fn import_characters(pool: &PgPool, args: &Args) -> Result<()> {
+    let total_start = Instant::now();
+
+    let chr_files = discover_chr_files(&args.charfile_dir);
 
     if chr_files.is_empty() {
         warn!(
@@ -107,44 +140,10 @@ async fn main() -> Result<()> {
         return Ok(());
     }
 
-    let parser = CharfileParser::new();
-    let error_count = AtomicUsize::new(0);
+    let (char_data, parse_errors) = parse_charfiles(&chr_files);
+    let (inserted, insert_errors) =
+        insert_charfiles(pool, &char_data, args.batch_size).await;
 
-    let parsed: Vec<ParsedCharfile> = chr_files
-        .par_iter()
-        .filter_map(|path| match parser.parse_file(path) {
-            Ok(charfile) => Some(charfile),
-            Err(e) => {
-                error_count.fetch_add(1, Ordering::Relaxed);
-                error!("Error parseando {}: {}", path.display(), e);
-                None
-            }
-        })
-        .collect();
-
-    let mut inserted = 0;
-    let mut insert_errors = 0;
-
-    let char_data: Vec<(String, serde_json::Value)> = parsed
-        .into_iter()
-        .filter_map(|c| {
-            serde_json::to_value(&c.data)
-                .ok()
-                .map(|json| (c.name, json))
-        })
-        .collect();
-
-    for batch in char_data.chunks(args.batch_size) {
-        match db::insert_characters_batch(&pool, batch).await {
-            Ok(count) => inserted += count,
-            Err(e) => {
-                insert_errors += batch.len();
-                error!("Error insertando lote: {}", e);
-            }
-        }
-    }
-
-    let parse_errors = error_count.load(Ordering::Relaxed);
     let total_secs = total_start.elapsed().as_secs_f64();
 
     info!(
@@ -159,28 +158,12 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-/// Recursively finds all .chr files in a directory, excluding .chr.bk backups.
-fn discover_chr_files(dir: &PathBuf) -> Result<Vec<PathBuf>> {
-    let mut files = Vec::new();
-
-    for entry in WalkDir::new(dir)
-        .follow_links(false)
-        .into_iter()
-        .filter_map(|e| e.ok())
-    {
-        let path = entry.path();
-        if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-            let name_lower = name.to_lowercase();
-            if name_lower.ends_with(".chr") && !name_lower.ends_with(".chr.bk") {
-                files.push(path.to_path_buf());
-            }
-        }
-    }
-
-    Ok(files)
-}
-
 /// Logs a formatted summary of the import process with counts and timings.
+#[allow(
+    dead_code,
+    clippy::cognitive_complexity,
+    reason = "kept for future detailed logging"
+)]
 fn print_summary(
     found: usize,
     parsed: usize,
