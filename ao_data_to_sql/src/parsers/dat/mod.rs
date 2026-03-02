@@ -1,9 +1,11 @@
-// DAT file parsers (binary format)
-// Future modules:
-// - objects.rs     (obj.dat)
-// - npcs.rs        (NPCs.dat)
-// - spells.rs      (Hechizos.dat)
-// - cities.rs      (Ciudades.dat)
-// - balance.rs     (Balance.dat)
-// - crafting.rs    (ArmadurasHerrero, ArmasHerrero, ObjCarpintero)
-// - factions.rs    (ArmadurasFaccionarias.dat)
+//! DAT file parsers (binary format).
+//!
+//! ## Planned Modules
+//!
+//! - `objects` - obj.dat
+//! - `npcs` - NPCs.dat
+//! - `spells` - Hechizos.dat
+//! - `cities` - Ciudades.dat
+//! - `balance` - Balance.dat
+//! - `crafting` - ArmadurasHerrero, ArmasHerrero, ObjCarpintero
+//! - `factions` - ArmadurasFaccionarias.dat

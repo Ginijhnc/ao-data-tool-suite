@@ -1,6 +1,11 @@
+//! Character database operations.
+//!
+//! Handles batch inserts and upserts for character data stored as JSONB.
+
 use serde_json::Value;
 use sqlx::PgPool;
 
+/// Inserts characters in a batch using upsert (INSERT ... ON CONFLICT DO UPDATE).
 pub async fn insert_characters_batch(
     pool: &PgPool,
     characters: &[(String, Value)],

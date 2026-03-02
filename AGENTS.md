@@ -134,12 +134,26 @@ impl Service {
 }
 ```
 
-### Documentation & Comments
+## Documentation & Comments
 
 - Spanish is used for user-facing messages (logs, CLI descriptions)
 - Code identifiers remain in English
 - No emojis anywhere
 - Code comments (`///` and `//!` for rustdoc, `//` for inline) must be in English
+
+### Rustdoc Guidelines
+
+Use `//!` for module/crate docs and `///` for item docs (functions, structs, enums).
+
+### Module-Level Docs (`//!`)
+
+- Every `.rs` file must have module-level documentation at the top
+- 3-5 lines: first line describes what the module does, following lines add context
+
+### Item-Level Docs (`///`)
+
+- All public items (`pub fn`, `pub struct`, `pub enum`, etc.) must be documented
+- Maximum 2-3 lines per item; keep it brief
 
 ## Commit Guidelines
 

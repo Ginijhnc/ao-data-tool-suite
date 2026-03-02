@@ -1,5 +1,7 @@
-// Map file parsers (binary format)
-// Future modules:
-// - map.rs     (.map files - tile data)
-// - inf.rs     (.inf files - map metadata)
-// - map_dat.rs (Map.dat - map index/registry)
+//! Map file parsers (binary format).
+//!
+//! ## Planned Modules
+//!
+//! - `map` - .map files (tile data)
+//! - `inf` - .inf files (map metadata)
+//! - `map_dat` - Map.dat (map index/registry)

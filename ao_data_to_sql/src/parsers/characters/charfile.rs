@@ -1,3 +1,7 @@
+//! Character file (.CHR) parser implementation.
+//!
+//! Extracts character name from filename and filters sensitive fields before storage.
+
 use crate::parsers::ini::{parse_ini_bytes, IniData, IniParseError};
 use std::collections::HashSet;
 use std::path::Path;
@@ -17,21 +21,29 @@ const SKIP_FIELDS: &[&str] = &[
 
 const SKIP_SECTIONS: &[&str] = &["CONTACTO"];
 
+/// Character file parsing errors.
 #[derive(Error, Debug)]
 pub enum CharfileError {
+    /// File could not be read.
     #[error("Error leyendo archivo: {0}")]
     IoError(#[from] std::io::Error),
+    /// INI parsing failed.
     #[error("Error parseando archivo: {0}")]
     ParseError(#[from] IniParseError),
+    /// Filename is not a valid .chr file.
     #[error("Nombre de archivo inválido: {0}")]
     InvalidFilename(String),
 }
 
+/// A parsed character with name extracted from filename.
 pub struct ParsedCharfile {
+    /// Character name (from filename, without .chr extension).
     pub name: String,
+    /// Character data as INI sections.
     pub data: IniData,
 }
 
+/// Parser for .CHR character files with privacy filtering.
 pub struct CharfileParser {
     skip_fields: HashSet<String>,
     skip_sections: HashSet<String>,
@@ -44,6 +56,7 @@ impl Default for CharfileParser {
 }
 
 impl CharfileParser {
+    /// Creates a new parser with default privacy filters.
     pub fn new() -> Self {
         Self {
             skip_fields: SKIP_FIELDS.iter().map(|s| s.to_string()).collect(),
@@ -51,6 +64,7 @@ impl CharfileParser {
         }
     }
 
+    /// Parses a .CHR file, extracting name from filename and filtering sensitive data.
     pub fn parse_file(&self, path: &Path) -> Result<ParsedCharfile, CharfileError> {
         let bytes = std::fs::read(path)?;
         let filename = path

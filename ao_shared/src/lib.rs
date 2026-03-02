@@ -1,15 +1,32 @@
+//! # ao_shared
+//!
+//! Shared utilities for the AO Tool Suite.
+//!
+//! This crate provides common database connection management used across
+//! all tools in the workspace for interacting with PostgreSQL.
+
+#![deny(missing_docs)]
+
 use sqlx::postgres::{PgPool, PgPoolOptions};
 use std::time::Duration;
 use thiserror::Error;
 
+/// Errors that can occur during database operations.
 #[derive(Error, Debug)]
 pub enum DbError {
+    /// A required environment variable is not defined.
     #[error("Variable de entorno no definida: {0}")]
     EnvVarMissing(String),
+
+    /// A database connection error occurred.
     #[error("Error de conexión: {0}")]
     ConnectionError(#[from] sqlx::Error),
 }
 
+/// Constructs a PostgreSQL connection URL from environment variables.
+///
+/// Reads DB_HOST, DB_PORT, DB_NAME, DB_USER, and DB_PASSWORD from the
+/// environment and assembles them into a connection string.
 pub fn build_db_url() -> Result<String, DbError> {
     let host = std::env::var("DB_HOST").map_err(|_| DbError::EnvVarMissing("DB_HOST".into()))?;
     let port = std::env::var("DB_PORT").map_err(|_| DbError::EnvVarMissing("DB_PORT".into()))?;
@@ -24,6 +41,9 @@ pub fn build_db_url() -> Result<String, DbError> {
     ))
 }
 
+/// Creates a PostgreSQL connection pool.
+///
+/// Uses [`build_db_url`] for configuration. Pool has a 30-second acquire timeout.
 pub async fn create_pool(max_connections: u32) -> Result<PgPool, DbError> {
     let url = build_db_url()?;
 
