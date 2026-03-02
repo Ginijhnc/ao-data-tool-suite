@@ -1,16 +1,27 @@
+//! INI file parser with legacy encoding support.
+//!
+//! Handles `[SECTION]` headers and `KEY=VALUE` pairs.
+//! Tries UTF-8 first, falls back to Windows-1252 for legacy VB6 servers.
+
 use encoding_rs::WINDOWS_1252;
 use std::collections::HashMap;
 use thiserror::Error;
 
+/// INI parsing errors.
 #[derive(Error, Debug)]
 pub enum IniParseError {
+    /// File encoding could not be determined.
     #[error("Error de codificación en archivo")]
     EncodingError,
 }
 
+/// A single INI section: key-value pairs.
 pub type IniSection = HashMap<String, String>;
+
+/// Complete INI file: section name -> section data.
 pub type IniData = HashMap<String, IniSection>;
 
+/// Parses raw bytes as INI, detecting encoding automatically.
 pub fn parse_ini_bytes(bytes: &[u8]) -> Result<IniData, IniParseError> {
     let content = match std::str::from_utf8(bytes) {
         Ok(s) => s.to_string(),
@@ -26,6 +37,7 @@ pub fn parse_ini_bytes(bytes: &[u8]) -> Result<IniData, IniParseError> {
     Ok(parse_ini_string(&content))
 }
 
+/// Parses an INI string into sections and key-value pairs.
 fn parse_ini_string(content: &str) -> IniData {
     let mut data: IniData = HashMap::new();
     let mut current_section: Option<String> = None;

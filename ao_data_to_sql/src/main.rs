@@ -1,3 +1,13 @@
+//! # ao_data_to_sql
+//!
+//! Imports Argentum Online game data files into PostgreSQL.
+//!
+//! ## Supported File Types
+//!
+//! - `.CHR` - Character save files (implemented)
+//! - `.DAT` - Objects, NPCs, spells, cities, etc. (planned)
+//! - `.map/.inf` - Map tiles and metadata (planned)
+
 mod db;
 mod parsers;
 
@@ -149,6 +159,7 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
+/// Recursively finds all .chr files in a directory, excluding .chr.bk backups.
 fn discover_chr_files(dir: &PathBuf) -> Result<Vec<PathBuf>> {
     let mut files = Vec::new();
 
@@ -169,6 +180,7 @@ fn discover_chr_files(dir: &PathBuf) -> Result<Vec<PathBuf>> {
     Ok(files)
 }
 
+/// Logs a formatted summary of the import process with counts and timings.
 fn print_summary(
     found: usize,
     parsed: usize,
