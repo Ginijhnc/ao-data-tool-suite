@@ -18,10 +18,11 @@ pub use charfile::{
     CharfileError, CharfileParser, ParsedCharfile, discover_chr_files,
 };
 
+/// Character name paired with its parsed JSONB data.
+pub type CharacterData = (String, serde_json::Value);
+
 /// Parses charfiles in parallel, returning parsed data and error count.
-pub fn parse_charfiles(
-    chr_files: &[PathBuf],
-) -> (Vec<(String, serde_json::Value)>, usize) {
+pub fn parse_charfiles(chr_files: &[PathBuf]) -> (Vec<CharacterData>, usize) {
     let parser = CharfileParser::new();
     let error_count = AtomicUsize::new(0);
 
@@ -30,7 +31,7 @@ pub fn parse_charfiles(
         .filter_map(|path| try_parse_file(&parser, path, &error_count))
         .collect();
 
-    let char_data: Vec<(String, serde_json::Value)> = parsed
+    let char_data: Vec<CharacterData> = parsed
         .into_iter()
         .filter_map(|c| {
             serde_json::to_value(&c.data)
