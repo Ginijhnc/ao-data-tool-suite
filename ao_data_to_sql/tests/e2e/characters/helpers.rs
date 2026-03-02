@@ -1,6 +1,8 @@
 use std::path::PathBuf;
 use std::process::Command;
 
+use pretty_assertions::assert_eq;
+
 use crate::common::{crate_dir, setup_test_db, with_test_db_env};
 
 /// Helper that verifies the number of characters in the database
