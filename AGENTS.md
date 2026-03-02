@@ -75,6 +75,8 @@ pub type ConnectionPool = Arc<Mutex<Vec<Connection>>>;
 // Good: just use u64 directly
 ```
 
+Complex types repeated in 2+ locations are refactoring candidates. Suggest a type alias to reduce duplication, but do not implement without asking first.
+
 ## Async Runtime
 
 - Use `tokio` as the async runtime

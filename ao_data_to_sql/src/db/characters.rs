@@ -2,14 +2,18 @@
 //!
 //! Handles batch inserts and upserts for character data stored as JSONB.
 
-use serde_json::Value;
 use sqlx::PgPool;
 use tracing::error;
+
+use crate::parsers::characters::CharacterData;
+
+/// Result of a database operation: (`success_count`, `error_count`).
+pub type DbOperationResult = (usize, usize);
 
 /// Inserts characters in a batch using upsert (INSERT ... ON CONFLICT DO UPDATE).
 pub async fn insert_characters_batch(
     pool: &PgPool,
-    characters: &[(String, Value)],
+    characters: &[CharacterData],
 ) -> Result<usize, sqlx::Error> {
     let mut tx = pool.begin().await?;
 
@@ -38,9 +42,9 @@ pub async fn insert_characters_batch(
 /// Inserts charfiles in batches, returning inserted count and error count.
 pub async fn insert_charfiles(
     pool: &PgPool,
-    char_data: &[(String, Value)],
+    char_data: &[CharacterData],
     batch_size: usize,
-) -> (usize, usize) {
+) -> DbOperationResult {
     let mut inserted = 0;
     let mut insert_errors = 0;
 
