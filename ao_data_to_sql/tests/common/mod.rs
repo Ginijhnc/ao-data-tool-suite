@@ -6,6 +6,15 @@ use testcontainers::ContainerAsync;
 use testcontainers::runners::AsyncRunner;
 use testcontainers_modules::postgres::Postgres;
 
+/// Base path for all test fixtures
+pub const FIXTURES_DIR: &str = "tests/fixtures";
+
+/// Fixtures for the Dakara C++ server
+pub const DAKARA_CPP_FIXTURES: &str = "dakara_cpp";
+
+/// Fixtures for the Alkon VB6 server
+pub const ALKON_VB6_FIXTURES: &str = "alkon_vb6";
+
 fn get_docker_host() -> &'static str {
     if std::env::var("TESTCONTAINERS_RYUK_DISABLED").is_ok() {
         "host.docker.internal"
