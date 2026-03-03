@@ -10,32 +10,47 @@ use crate::parsers::characters::CharacterData;
 /// Result of a database operation: (`success_count`, `error_count`).
 pub type DbOperationResult = (usize, usize);
 
-/// Inserts characters in a batch using upsert (INSERT ... ON CONFLICT DO UPDATE).
+/// Inserts characters in a batch using multi-row INSERT with upsert.
+///
+/// Uses a single INSERT statement with multiple value rows for efficiency.
 pub async fn insert_characters_batch(
     pool: &PgPool,
     characters: &[CharacterData],
 ) -> Result<usize, sqlx::Error> {
-    let mut tx = pool.begin().await?;
+    if characters.is_empty() {
+        return Ok(0);
+    }
+
+    // Build multi-row VALUES clause: ($1, $2), ($3, $4), ...
+    let placeholders: Vec<String> = (0..characters.len())
+        .map(|i| {
+            let p1 = i * 2 + 1;
+            let p2 = i * 2 + 2;
+            format!("(${p1}, ${p2})")
+        })
+        .collect();
+
+    let query = format!(
+        r"
+        INSERT INTO characters (name, data)
+        VALUES {}
+        ON CONFLICT (name) DO UPDATE SET data = EXCLUDED.data
+        ",
+        placeholders.join(", ")
+    );
+
+    let mut query_builder = sqlx::query(&query);
 
     #[allow(
         clippy::needless_borrowed_reference,
         reason = "required by pattern_type_mismatch lint"
     )]
     for &(ref name, ref data) in characters {
-        sqlx::query(
-            r"
-            INSERT INTO characters (name, data)
-            VALUES ($1, $2)
-            ON CONFLICT (name) DO UPDATE SET data = EXCLUDED.data
-            ",
-        )
-        .bind(name)
-        .bind(data)
-        .execute(&mut *tx)
-        .await?;
+        query_builder = query_builder.bind(name).bind(data);
     }
 
-    tx.commit().await?;
+    query_builder.execute(pool).await?;
+
     Ok(characters.len())
 }
 
