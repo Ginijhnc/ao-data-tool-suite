@@ -8,7 +8,13 @@
 //! - `.DAT` - Objects, NPCs, spells, cities, etc. (planned)
 //! - `.map/.inf` - Map tiles and metadata (planned)
 
+#![allow(
+    clippy::std_instead_of_alloc,
+    reason = "Arc/Mutex from std required for profiling module interop"
+)]
+
 use std::path::{Path, PathBuf};
+use std::sync::{Arc, Mutex};
 use std::time::Instant;
 
 use anyhow::{Context, Result};
@@ -23,6 +29,7 @@ use ao_data_to_sql::execution_tracking::{
 use ao_data_to_sql::parsers::characters::{
     discover_chr_files, parse_charfiles,
 };
+use ao_data_to_sql::profiling;
 
 /// CLI arguments for the import tool.
 #[derive(Parser, Debug)]
@@ -56,6 +63,15 @@ struct Args {
         help = "Version objetivo para rollback (0 = revertir todas)"
     )]
     rollback_target: i64,
+
+    /// Enable detailed performance profiling (CPU/RAM tracking).
+    #[arg(
+        long,
+        env = "ENABLE_PROFILING",
+        default_value = "false",
+        help = "Habilitar profiling detallado de rendimiento"
+    )]
+    enable_profiling: bool,
 }
 
 #[tokio::main]
@@ -132,8 +148,17 @@ async fn setup_database(args: &Args) -> Result<PgPool> {
 async fn import_characters(pool: &PgPool, args: &Args) -> Result<()> {
     let total_start = Instant::now();
 
+    let (peak_cpu, peak_memory_mb, cpu_monitor_handle) =
+        if args.enable_profiling {
+            profiling::start_cpu_monitoring()
+        } else {
+            (Arc::new(Mutex::new(0.0)), Arc::new(Mutex::new(0.0)), None)
+        };
+
+    let scan_start = Instant::now();
     let all_files = discover_chr_files(&args.charfile_dir)
         .context("Error descubriendo archivos .CHR")?;
+    let scan_secs = scan_start.elapsed().as_secs_f64();
 
     if all_files.is_empty() {
         warn!(
@@ -143,8 +168,10 @@ async fn import_characters(pool: &PgPool, args: &Args) -> Result<()> {
         return Ok(());
     }
 
+    let filter_start = Instant::now();
     let last_exec = read_last_execution();
     let chr_files = filter_modified_since(all_files, last_exec);
+    let filter_secs = filter_start.elapsed().as_secs_f64();
 
     if chr_files.is_empty() {
         info!("No hay archivos modificados desde la última ejecución");
@@ -152,31 +179,71 @@ async fn import_characters(pool: &PgPool, args: &Args) -> Result<()> {
         return Ok(());
     }
 
+    let parse_start = Instant::now();
     let (char_data, parse_errors) = parse_charfiles(&chr_files);
+    let parse_secs = parse_start.elapsed().as_secs_f64();
+
+    let insert_start = Instant::now();
     let (inserted, insert_errors) =
         insert_charfiles(pool, &char_data, args.batch_size).await;
+    let insert_secs = insert_start.elapsed().as_secs_f64();
 
     write_last_execution()?;
 
     let total_secs = total_start.elapsed().as_secs_f64();
 
-    info!(
-        "Importación: {} archivos modificados, {} insertados, {} errores parseo, {} errores inserción, {:.3}s",
-        chr_files.len(),
-        inserted,
-        parse_errors,
-        insert_errors,
-        total_secs
-    );
+    #[allow(
+        clippy::unwrap_used,
+        reason = "mutex poisoning handled by monitoring task design"
+    )]
+    let (final_peak_cpu, final_peak_memory_mb) = if args.enable_profiling {
+        if let Some(handle) = cpu_monitor_handle {
+            handle.abort();
+        }
+        let cpu = *peak_cpu.lock().unwrap();
+        let mem = *peak_memory_mb.lock().unwrap();
+        (cpu, mem)
+    } else {
+        (0.0, 0.0)
+    };
+
+    if args.enable_profiling {
+        print_summary(
+            chr_files.len(),
+            char_data.len(),
+            parse_errors,
+            inserted,
+            insert_errors,
+            scan_secs,
+            filter_secs,
+            parse_secs,
+            insert_secs,
+            total_secs,
+            args.batch_size,
+            final_peak_memory_mb,
+            final_peak_cpu,
+        );
+    } else {
+        info!(
+            "Personajes: {} archivos modificados, {} insertados, {} errores parseo, {} errores inserción, {:.3}s",
+            chr_files.len(),
+            inserted,
+            parse_errors,
+            insert_errors,
+            total_secs
+        );
+    }
 
     Ok(())
 }
 
 /// Logs a formatted summary of the import process with counts and timings.
 #[allow(
-    dead_code,
     clippy::cognitive_complexity,
-    reason = "kept for future detailed logging"
+    clippy::cast_precision_loss,
+    clippy::as_conversions,
+    clippy::too_many_arguments,
+    reason = "precision loss acceptable for performance metrics display, many args needed for comprehensive metrics"
 )]
 fn print_summary(
     found: usize,
@@ -185,11 +252,31 @@ fn print_summary(
     inserted: usize,
     insert_errors: usize,
     scan_secs: f64,
+    filter_secs: f64,
     parse_secs: f64,
-    db_secs: f64,
     insert_secs: f64,
     total_secs: f64,
+    batch_size: usize,
+    peak_memory_mb: f64,
+    cpu_usage_pct: f32,
 ) {
+    let scan_pct = (scan_secs / total_secs) * 100.0;
+    let filter_pct = (filter_secs / total_secs) * 100.0;
+    let parse_pct = (parse_secs / total_secs) * 100.0;
+    let insert_pct = (insert_secs / total_secs) * 100.0;
+
+    let parse_rate = if parse_secs > 0.0 {
+        parsed as f64 / parse_secs
+    } else {
+        0.0
+    };
+
+    let insert_rate = if insert_secs > 0.0 {
+        inserted as f64 / insert_secs
+    } else {
+        0.0
+    };
+
     info!("========================================");
     info!("RESUMEN DE IMPORTACIÓN");
     info!("========================================");
@@ -198,12 +285,32 @@ fn print_summary(
     info!("Errores de parseo:         {}", parse_errors);
     info!("Registros insertados:      {}", inserted);
     info!("Errores de inserción:      {}", insert_errors);
+    info!("Batch size:                {}", batch_size);
+    info!("RAM pico (script):         {:.1} MB", peak_memory_mb);
+    info!("CPU pico (script):         {:.1}%", cpu_usage_pct);
     info!("----------------------------------------");
-    info!("Búsqueda de archivos .CHR: {:.3}s", scan_secs);
-    info!("Parseo de archivos:        {:.3}s", parse_secs);
-    info!("Conexión a DB:             {:.3}s", db_secs);
-    info!("Inserción en DB:           {:.3}s", insert_secs);
+    info!("DESGLOSE DE TIEMPOS:");
+    info!(
+        "  Búsqueda archivos:       {:.3}s ({:.1}%)",
+        scan_secs, scan_pct
+    );
+    info!(
+        "  Filtrado modificados:    {:.3}s ({:.1}%)",
+        filter_secs, filter_pct
+    );
+    info!(
+        "  Parseo:                  {:.3}s ({:.1}%) - {:.0} archivos/s",
+        parse_secs, parse_pct, parse_rate
+    );
+    info!(
+        "  Inserción DB:            {:.3}s ({:.1}%) - {:.0} registros/s",
+        insert_secs, insert_pct, insert_rate
+    );
     info!("----------------------------------------");
     info!("TIEMPO TOTAL:              {:.3} segundos", total_secs);
+    info!(
+        "THROUGHPUT GENERAL:        {:.0} archivos/s",
+        found as f64 / total_secs
+    );
     info!("========================================");
 }

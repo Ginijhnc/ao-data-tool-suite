@@ -5,3 +5,4 @@
 pub mod db;
 pub mod execution_tracking;
 pub mod parsers;
+pub mod profiling;
