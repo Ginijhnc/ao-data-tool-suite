@@ -4,6 +4,7 @@
 
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
+use std::time::SystemTime;
 
 use thiserror::Error;
 use walkdir::WalkDir;
@@ -28,6 +29,7 @@ const SKIP_SECTIONS: &[&str] = &["CONTACTO"];
 
 /// Character file parsing errors.
 #[derive(Error, Debug)]
+#[non_exhaustive]
 pub enum CharfileError {
     /// File could not be read.
     #[error("Error leyendo archivo: {0}")]
@@ -38,9 +40,13 @@ pub enum CharfileError {
     /// Filename is not a valid .chr file.
     #[error("Nombre de archivo inválido: {0}")]
     InvalidFilename(String),
+    /// File modification time could not be retrieved.
+    #[error("Error obteniendo tiempo de modificación: {0}")]
+    MetadataError(String),
 }
 
 /// A parsed character with name extracted from filename.
+#[non_exhaustive]
 pub struct ParsedCharfile {
     /// Character name (from filename, without .chr extension).
     pub name: String,
@@ -115,7 +121,9 @@ impl CharfileParser {
 }
 
 /// Recursively finds all `.chr` files in a directory, excluding `.chr.bk` backups.
-pub fn discover_chr_files(dir: &Path) -> Vec<PathBuf> {
+pub fn discover_chr_files(
+    dir: &Path,
+) -> Result<Vec<(PathBuf, SystemTime)>, CharfileError> {
     let mut files = Vec::new();
 
     for entry in WalkDir::new(dir)
@@ -133,9 +141,17 @@ pub fn discover_chr_files(dir: &Path) -> Vec<PathBuf> {
             .is_some_and(|n| n.to_lowercase().ends_with(".chr.bk"));
 
         if is_chr && !is_backup {
-            files.push(path.to_path_buf());
+            let metadata = std::fs::metadata(path)?;
+            let mtime = metadata.modified().map_err(|e| {
+                CharfileError::MetadataError(format!(
+                    "{}: {}",
+                    path.display(),
+                    e
+                ))
+            })?;
+            files.push((path.to_path_buf(), mtime));
         }
     }
 
-    files
+    Ok(files)
 }

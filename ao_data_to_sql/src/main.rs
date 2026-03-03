@@ -8,9 +8,6 @@
 //! - `.DAT` - Objects, NPCs, spells, cities, etc. (planned)
 //! - `.map/.inf` - Map tiles and metadata (planned)
 
-mod db;
-mod parsers;
-
 use std::path::{Path, PathBuf};
 use std::time::Instant;
 
@@ -19,8 +16,13 @@ use clap::Parser;
 use sqlx::PgPool;
 use tracing::{info, warn};
 
-use db::insert_charfiles;
-use parsers::characters::{discover_chr_files, parse_charfiles};
+use ao_data_to_sql::db::insert_charfiles;
+use ao_data_to_sql::execution_tracking::{
+    filter_modified_since, read_last_execution, write_last_execution,
+};
+use ao_data_to_sql::parsers::characters::{
+    discover_chr_files, parse_charfiles,
+};
 
 /// CLI arguments for the import tool.
 #[derive(Parser, Debug)]
@@ -130,9 +132,10 @@ async fn setup_database(args: &Args) -> Result<PgPool> {
 async fn import_characters(pool: &PgPool, args: &Args) -> Result<()> {
     let total_start = Instant::now();
 
-    let chr_files = discover_chr_files(&args.charfile_dir);
+    let all_files = discover_chr_files(&args.charfile_dir)
+        .context("Error descubriendo archivos .CHR")?;
 
-    if chr_files.is_empty() {
+    if all_files.is_empty() {
         warn!(
             "No se encontraron archivos .CHR en {}",
             args.charfile_dir.display()
@@ -140,14 +143,25 @@ async fn import_characters(pool: &PgPool, args: &Args) -> Result<()> {
         return Ok(());
     }
 
+    let last_exec = read_last_execution();
+    let chr_files = filter_modified_since(all_files, last_exec);
+
+    if chr_files.is_empty() {
+        info!("No hay archivos modificados desde la última ejecución");
+        write_last_execution()?;
+        return Ok(());
+    }
+
     let (char_data, parse_errors) = parse_charfiles(&chr_files);
     let (inserted, insert_errors) =
         insert_charfiles(pool, &char_data, args.batch_size).await;
 
+    write_last_execution()?;
+
     let total_secs = total_start.elapsed().as_secs_f64();
 
     info!(
-        "Importación: {} archivos, {} insertados, {} errores parseo, {} errores inserción, {:.3}s",
+        "Importación: {} archivos modificados, {} insertados, {} errores parseo, {} errores inserción, {:.3}s",
         chr_files.len(),
         inserted,
         parse_errors,

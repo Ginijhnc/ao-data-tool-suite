@@ -22,14 +22,15 @@
       "Bash(done)",
       "Bash(fi)",
       "Bash(wc:*)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "Bash(RUSTDOCFLAGS=\"-D warnings\" cargo doc --workspace --no-deps)"
     ],
-    "ask": [],
     "deny": [
       "Bash(curl:*)",
       "Read(./.env)",
       "Read(./.env.*)",
       "Read(./secrets/**)"
-    ]
+    ],
+    "ask": []
   }
 }

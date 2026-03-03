@@ -10,6 +10,7 @@ use thiserror::Error;
 
 /// INI parsing errors.
 #[derive(Error, Debug)]
+#[non_exhaustive]
 pub enum IniParseError {
     /// File encoding could not be determined.
     #[error("Error de codificación en archivo")]
