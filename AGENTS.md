@@ -84,6 +84,12 @@ Complex types repeated in 2+ locations are refactoring candidates. Suggest a typ
 - Use `#[tokio::main]` for the main function
 - Use `#[tokio::test]` for async tests
 
+## Dependencies
+
+- Avoid version ranges like `"0.4"` or `"^0.4"` - be explicit about the exact version
+- Prefer pinning dependencies to the latest specific version (e.g., `chrono = "0.4.43"`)
+- Check the latest version on [crates.io](https://crates.io/) before adding a dependency
+
 ## String Parameters
 
 - Use `&str` for function parameters that only need to read the string
@@ -197,8 +203,8 @@ cargo fmt -p ao_data_to_sql            # Format a specific crate
 ### Linting
 
 ```bash
-cargo clippy --workspace               # Run clippy on all crates
-cargo clippy -p ao_data_to_sql         # Lint a specific crate
+cargo clippy --workspace --all-targets -- -D warnings  # Run clippy, fail on warnings
+cargo clippy -p ao_data_to_sql --all-targets -- -D warnings  # Lint a specific crate, fail on warnings
 ```
 
 ### Testing

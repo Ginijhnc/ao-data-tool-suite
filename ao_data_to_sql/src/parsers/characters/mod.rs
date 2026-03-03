@@ -22,6 +22,7 @@ pub use charfile::{
 pub type CharacterData = (String, serde_json::Value);
 
 /// Parses charfiles in parallel, returning parsed data and error count.
+#[must_use]
 pub fn parse_charfiles(chr_files: &[PathBuf]) -> (Vec<CharacterData>, usize) {
     let parser = CharfileParser::new();
     let error_count = AtomicUsize::new(0);

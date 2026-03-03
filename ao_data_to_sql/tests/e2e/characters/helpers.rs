@@ -2,6 +2,7 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use pretty_assertions::assert_eq;
+use tempfile::TempDir;
 
 use crate::common::{crate_dir, setup_test_db, with_test_db_env};
 
@@ -13,11 +14,16 @@ pub async fn verify_character_count(expected_character_count: i64) {
     let (container, pool) = setup_test_db().await;
     let host_port = container.get_host_port_ipv4(5432).await.unwrap();
 
+    // Create a temporary directory and unique file to isolate execution tracking
+    let temp_dir = TempDir::new().expect("fallo al crear directorio temporal");
+    let last_exec_file = temp_dir.path().join("last_execution");
+
     let charfile_dir = crate_dir().join("Charfile");
 
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_ao_data_to_sql"));
     with_test_db_env(&mut cmd, host_port)
-        .env("CHARFILE_DIR", charfile_dir.to_str().unwrap());
+        .env("CHARFILE_DIR", charfile_dir.to_str().unwrap())
+        .env("LAST_EXECUTION_FILE", last_exec_file.to_str().unwrap());
 
     let status = cmd.status().expect("fallo al ejecutar ao_data_to_sql");
     assert!(status.success(), "ao_data_to_sql termino con error");
@@ -42,11 +48,16 @@ pub async fn verify_character_data_matches_fixture(
     let (container, pool) = setup_test_db().await;
     let host_port = container.get_host_port_ipv4(5432).await.unwrap();
 
+    // Create a temporary directory and unique file to isolate execution tracking
+    let temp_dir = TempDir::new().expect("fallo al crear directorio temporal");
+    let last_exec_file = temp_dir.path().join("last_execution");
+
     let charfile_dir = crate_dir().join("Charfile");
 
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_ao_data_to_sql"));
     with_test_db_env(&mut cmd, host_port)
-        .env("CHARFILE_DIR", charfile_dir.to_str().unwrap());
+        .env("CHARFILE_DIR", charfile_dir.to_str().unwrap())
+        .env("LAST_EXECUTION_FILE", last_exec_file.to_str().unwrap());
 
     let status = cmd.status().expect("fallo al ejecutar ao_data_to_sql");
     assert!(status.success(), "ao_data_to_sql termino con error");
