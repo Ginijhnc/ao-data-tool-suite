@@ -31,6 +31,7 @@ testcontainers = "0.26.3"
 testcontainers-modules = { version = "0.14.0", features = ["postgres"] }
 pretty_assertions = "1.4.1"
 tempfile = "3.24.0"
+sysinfo = "0.38.3"
 
 [workspace.lints.clippy]
 pedantic = { level = "warn", priority = -1 }
