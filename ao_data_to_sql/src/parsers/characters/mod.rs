@@ -27,13 +27,9 @@ pub fn parse_charfiles(chr_files: &[PathBuf]) -> (Vec<CharacterData>, usize) {
     let parser = CharfileParser::new();
     let error_count = AtomicUsize::new(0);
 
-    let parsed: Vec<ParsedCharfile> = chr_files
+    let char_data: Vec<CharacterData> = chr_files
         .par_iter()
         .filter_map(|path| try_parse_file(&parser, path, &error_count))
-        .collect();
-
-    let char_data: Vec<CharacterData> = parsed
-        .into_iter()
         .filter_map(|c| {
             serde_json::to_value(&c.data)
                 .ok()
