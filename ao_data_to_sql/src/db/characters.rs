@@ -2,6 +2,7 @@
 //!
 //! Handles batch inserts and upserts for character data stored as JSONB.
 
+use futures::stream::{self, StreamExt};
 use sqlx::PgPool;
 use tracing::error;
 
@@ -9,6 +10,9 @@ use crate::parsers::characters::CharacterData;
 
 /// Result of a database operation: (`success_count`, `error_count`).
 pub type DbOperationResult = (usize, usize);
+
+/// Default number of concurrent batch insertions.
+const DEFAULT_CONCURRENCY: usize = 8;
 
 /// Inserts characters in a batch using multi-row INSERT with upsert.
 ///
@@ -54,24 +58,36 @@ pub async fn insert_characters_batch(
     Ok(characters.len())
 }
 
-/// Inserts charfiles in batches, returning inserted count and error count.
+/// Inserts charfiles in parallel batches, returning inserted count and error count.
+///
+/// Uses concurrent batch processing to maximize connection pool utilization.
 pub async fn insert_charfiles(
     pool: &PgPool,
     char_data: &[CharacterData],
     batch_size: usize,
 ) -> DbOperationResult {
-    let mut inserted = 0;
-    let mut insert_errors = 0;
+    let batches: Vec<_> = char_data.chunks(batch_size).collect();
 
-    for batch in char_data.chunks(batch_size) {
-        match insert_characters_batch(pool, batch).await {
-            Ok(count) => inserted += count,
-            Err(e) => {
-                insert_errors += batch.len();
-                error!("Error insertando lote: {}", e);
+    let results: Vec<_> = stream::iter(batches)
+        .map(|batch| async move {
+            let batch_len = batch.len();
+            match insert_characters_batch(pool, batch).await {
+                Ok(count) => (count, 0),
+                Err(e) => {
+                    error!("Error insertando lote: {}", e);
+                    (0, batch_len)
+                }
             }
-        }
-    }
+        })
+        .buffer_unordered(DEFAULT_CONCURRENCY)
+        .collect()
+        .await;
+
+    let (inserted, insert_errors) = results
+        .iter()
+        .fold((0, 0), |(acc_ins, acc_err), &(ins, err)| {
+            (acc_ins + ins, acc_err + err)
+        });
 
     (inserted, insert_errors)
 }

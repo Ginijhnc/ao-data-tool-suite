@@ -91,6 +91,7 @@ dependencies = [
  "clap",
  "dotenvy",
  "encoding_rs",
+ "futures",
  "pretty_assertions",
  "rayon",
  "serde",
