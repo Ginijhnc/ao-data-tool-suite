@@ -23,7 +23,8 @@
       "Bash(fi)",
       "Bash(wc:*)",
       "Bash(findstr:*)",
-      "Bash(RUSTDOCFLAGS=\"-D warnings\" cargo doc --workspace --no-deps)"
+      "Bash(RUSTDOCFLAGS=\"-D warnings\" cargo doc --workspace --no-deps)",
+      "Bash(set RUSTDOCFLAGS=-D warnings)"
     ],
     "deny": [
       "Bash(curl:*)",

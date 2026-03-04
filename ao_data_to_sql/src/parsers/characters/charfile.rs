@@ -4,10 +4,11 @@
 
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
+use std::sync::Mutex;
 use std::time::SystemTime;
 
+use ignore::WalkBuilder;
 use thiserror::Error;
-use walkdir::WalkDir;
 
 use crate::parsers::ini::{IniData, IniParseError, parse_ini_bytes};
 
@@ -120,38 +121,93 @@ impl CharfileParser {
     }
 }
 
-/// Recursively finds all `.chr` files in a directory, excluding `.chr.bk` backups.
+/// Checks if a path is a valid .chr file (not a backup).
+fn is_valid_chr_file(path: &Path) -> bool {
+    let is_chr = path
+        .extension()
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("chr"));
+    let is_backup = path
+        .file_name()
+        .and_then(|n| n.to_str())
+        .is_some_and(|n| n.to_lowercase().ends_with(".chr.bk"));
+
+    is_chr && !is_backup
+}
+
+/// Recursively finds all `.chr` files in a directory using parallel traversal.
+///
+/// Uses the `ignore` crate for parallel directory walking, which provides
+/// significant speedup on directories with many files.
 pub fn discover_chr_files(
     dir: &Path,
 ) -> Result<Vec<(PathBuf, SystemTime)>, CharfileError> {
-    let mut files = Vec::new();
+    let files: Mutex<Vec<(PathBuf, SystemTime)>> = Mutex::new(Vec::new());
+    let errors: Mutex<Option<CharfileError>> = Mutex::new(None);
 
-    for entry in WalkDir::new(dir)
+    WalkBuilder::new(dir)
         .follow_links(false)
-        .into_iter()
-        .filter_map(Result::ok)
-    {
-        let path = entry.path();
-        let is_chr = path
-            .extension()
-            .is_some_and(|ext| ext.eq_ignore_ascii_case("chr"));
-        let is_backup = path
-            .file_name()
-            .and_then(|n| n.to_str())
-            .is_some_and(|n| n.to_lowercase().ends_with(".chr.bk"));
+        .standard_filters(false)
+        .build_parallel()
+        .run(|| {
+            let files = &files;
+            let errors = &errors;
 
-        if is_chr && !is_backup {
-            let metadata = std::fs::metadata(path)?;
-            let mtime = metadata.modified().map_err(|e| {
-                CharfileError::MetadataError(format!(
-                    "{}: {}",
-                    path.display(),
-                    e
-                ))
-            })?;
-            files.push((path.to_path_buf(), mtime));
-        }
+            Box::new(move |result| {
+                let Ok(entry) = result else {
+                    return ignore::WalkState::Continue;
+                };
+
+                let path = entry.path();
+
+                if !is_valid_chr_file(path) {
+                    return ignore::WalkState::Continue;
+                }
+
+                let metadata = match entry.metadata() {
+                    Ok(m) => m,
+                    Err(e) => {
+                        if let Ok(mut err_guard) = errors.lock()
+                            && err_guard.is_none()
+                        {
+                            *err_guard = Some(CharfileError::IoError(
+                                std::io::Error::other(e.to_string()),
+                            ));
+                        }
+                        return ignore::WalkState::Continue;
+                    }
+                };
+
+                let mtime = match metadata.modified() {
+                    Ok(t) => t,
+                    Err(e) => {
+                        if let Ok(mut err_guard) = errors.lock()
+                            && err_guard.is_none()
+                        {
+                            *err_guard = Some(CharfileError::MetadataError(
+                                format!("{}: {}", path.display(), e),
+                            ));
+                        }
+                        return ignore::WalkState::Continue;
+                    }
+                };
+
+                if let Ok(mut files_guard) = files.lock() {
+                    files_guard.push((path.to_path_buf(), mtime));
+                }
+
+                ignore::WalkState::Continue
+            })
+        });
+
+    if let Ok(err_guard) = errors.lock()
+        && let Some(e) = err_guard.as_ref()
+    {
+        return Err(CharfileError::MetadataError(e.to_string()));
     }
 
-    Ok(files)
+    let result = files
+        .into_inner()
+        .map_err(|e| CharfileError::MetadataError(e.to_string()))?;
+
+    Ok(result)
 }
