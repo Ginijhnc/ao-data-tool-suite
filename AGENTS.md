@@ -90,6 +90,22 @@ Complex types repeated in 2+ locations are refactoring candidates. Suggest a typ
 - Prefer pinning dependencies to the latest specific version (e.g., `chrono = "0.4.43"`)
 - Check the latest version on [crates.io](https://crates.io/) before adding a dependency
 
+### Workspace Dependencies
+
+All dependencies must be defined in the root `Cargo.toml` under `[workspace.dependencies]`, then referenced from crate-level `Cargo.toml` files using `.workspace = true`:
+
+```toml
+# Root Cargo.toml
+[workspace.dependencies]
+serde = { version = "1.0.228", features = ["derive"] }
+
+# Crate Cargo.toml
+[dependencies]
+serde.workspace = true
+```
+
+This ensures consistent versioning across all crates and provides a single source of truth for dependency versions.
+
 ## String Parameters
 
 - Use `&str` for function parameters that only need to read the string

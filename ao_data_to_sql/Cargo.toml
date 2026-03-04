@@ -22,12 +22,12 @@ clap.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 rayon.workspace = true
-walkdir.workspace = true
 dotenvy.workspace = true
 anyhow.workspace = true
 thiserror.workspace = true
 sysinfo.workspace = true
 futures.workspace = true
+ignore.workspace = true
 
 [dev-dependencies]
 testcontainers.workspace = true
