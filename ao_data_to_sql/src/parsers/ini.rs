@@ -1,6 +1,7 @@
 //! INI file parser with legacy encoding support.
 //!
 //! Handles `[SECTION]` headers and `KEY=VALUE` pairs.
+//! Supports section comments like `[NPC52] 'Propiedades Bander`.
 //! Tries UTF-8 first, falls back to Windows-1252 for legacy VB6 servers.
 
 use std::collections::HashMap;
@@ -53,10 +54,15 @@ fn parse_ini_string(content: &str) -> IniData {
             continue;
         }
 
-        if trimmed.starts_with('[') && trimmed.ends_with(']') {
-            let section_name = trimmed[1..trimmed.len() - 1].to_uppercase();
+        if trimmed.starts_with('[')
+            && let Some((section_name, comment)) =
+                parse_section_header(trimmed)
+        {
             current_section = Some(section_name.clone());
-            data.entry(section_name).or_default();
+            let section_data = data.entry(section_name).or_default();
+            if let Some(c) = comment {
+                section_data.insert("_COMMENT".to_owned(), c);
+            }
             continue;
         }
 
@@ -73,4 +79,24 @@ fn parse_ini_string(content: &str) -> IniData {
     }
 
     data
+}
+
+/// Parses a section header line like `[NPC52] 'Propiedades Bander`.
+///
+/// Returns the section name (uppercase) and an optional comment.
+fn parse_section_header(line: &str) -> Option<(String, Option<String>)> {
+    let close_bracket = line.find(']')?;
+    let section_name = line[1..close_bracket].to_uppercase();
+
+    let remainder = line[close_bracket + 1..].trim();
+    let comment = remainder.strip_prefix('\'').and_then(|comment_text| {
+        let trimmed = comment_text.trim();
+        if trimmed.is_empty() {
+            None
+        } else {
+            Some(trimmed.to_owned())
+        }
+    });
+
+    Some((section_name, comment))
 }

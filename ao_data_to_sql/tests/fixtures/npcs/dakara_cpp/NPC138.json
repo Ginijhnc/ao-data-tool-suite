@@ -1,0 +1,16 @@
+{
+    "BODY": "381",
+    "DESC": "Cuando hayas caído en combate, puedes acercarte al sacerdote de la ciudad para que te devuelva a la vida.",
+    "HEAD": "2050",
+    "NAME": "Abel, el monje pensador",
+    "DOMABLE": "0",
+    "HEADING": "3",
+    "HOSTILE": "0",
+    "NPCTYPE": "0",
+    "RESPAWN": "0",
+    "COMERCIA": "0",
+    "MOVEMENT": "0",
+    "_COMMENT": "Monje",
+    "ALINEACION": "0",
+    "ATTACKABLE": "0"
+}

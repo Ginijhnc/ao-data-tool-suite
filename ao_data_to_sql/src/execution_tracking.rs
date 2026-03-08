@@ -49,8 +49,18 @@ pub fn write_last_execution_to(path: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Compares modification time against last execution timestamp.
+/// Returns `true` if should be processed (modified or first run).
+#[must_use]
+fn is_newer_than(mtime: SystemTime, last_exec: Option<SystemTime>) -> bool {
+    last_exec.is_none_or(|last| mtime > last)
+}
+
 /// Filters files to only those modified after the last execution.
 /// Returns all files if `last_exec` is None (first run scenario).
+///
+/// Used for batch processing when modification times are already collected
+/// (e.g., character files discovered via parallel directory scan).
 #[must_use]
 pub fn filter_modified_since(
     files: Vec<(PathBuf, SystemTime)>,
@@ -58,7 +68,19 @@ pub fn filter_modified_since(
 ) -> Vec<PathBuf> {
     files
         .into_iter()
-        .filter(|&(_, mtime)| last_exec.is_none_or(|last| mtime > last))
+        .filter(|&(_, mtime)| is_newer_than(mtime, last_exec))
         .map(|(path, _)| path)
         .collect()
+}
+
+/// Checks if a file was modified since the last execution.
+/// Returns `true` if file should be processed (modified or first run).
+///
+/// Used for single-file checks where modification time needs to be read from disk
+/// (e.g., NPCs.dat). Unlike `filter_modified_since`, this performs filesystem I/O.
+#[must_use]
+pub fn was_modified_since(path: &Path, last_exec: Option<SystemTime>) -> bool {
+    path.metadata()
+        .and_then(|m| m.modified())
+        .is_ok_and(|mtime| is_newer_than(mtime, last_exec))
 }
