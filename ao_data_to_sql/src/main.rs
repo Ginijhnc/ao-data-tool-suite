@@ -5,7 +5,8 @@
 //! ## Supported File Types
 //!
 //! - `.CHR` - Character save files (implemented)
-//! - `.DAT` - Objects, NPCs, spells, cities, etc. (planned)
+//! - `NPCs.dat` - NPC definitions (implemented)
+//! - `.DAT` - Objects, spells, cities, etc. (planned)
 //! - `.map/.inf` - Map tiles and metadata (planned)
 
 #![allow(
@@ -22,13 +23,15 @@ use clap::Parser;
 use sqlx::PgPool;
 use tracing::{info, warn};
 
-use ao_data_to_sql::db::insert_charfiles;
+use ao_data_to_sql::db::{insert_charfiles, insert_npcs, prepare_npc_data};
 use ao_data_to_sql::execution_tracking::{
-    filter_modified_since, read_last_execution, write_last_execution,
+    filter_modified_since, read_last_execution, was_modified_since,
+    write_last_execution,
 };
 use ao_data_to_sql::parsers::characters::{
     discover_chr_files, parse_charfiles,
 };
+use ao_data_to_sql::parsers::dat::npcs::parse_npcs_file;
 use ao_data_to_sql::profiling;
 
 /// CLI arguments for the import tool.
@@ -39,6 +42,10 @@ struct Args {
     /// Directory containing .CHR character files.
     #[arg(short, long, env = "CHARFILE_DIR", default_value = "./Charfile")]
     charfile_dir: PathBuf,
+
+    /// Directory containing .DAT files (NPCs.dat, Obj.dat, etc.).
+    #[arg(long, env = "DATS_DIR", default_value = "./Server/Dat")]
+    dats_dir: PathBuf,
 
     /// Number of records per database batch insert.
     #[arg(short, long, env = "BATCH_SIZE", default_value = "100")]
@@ -88,7 +95,14 @@ async fn run() -> Result<()> {
         return Ok(());
     }
 
-    import_characters(&pool, &args).await
+    let last_exec = read_last_execution();
+
+    import_characters(&pool, &args, last_exec).await?;
+    import_npcs(&pool, &args, last_exec).await?;
+
+    write_last_execution()?;
+
+    Ok(())
 }
 
 /// Initializes logging, loads environment, and parses CLI arguments.
@@ -145,7 +159,11 @@ async fn setup_database(args: &Args) -> Result<PgPool> {
 }
 
 /// Discovers, parses, and inserts character files into the database.
-async fn import_characters(pool: &PgPool, args: &Args) -> Result<()> {
+async fn import_characters(
+    pool: &PgPool,
+    args: &Args,
+    last_exec: Option<std::time::SystemTime>,
+) -> Result<()> {
     let total_start = Instant::now();
 
     let (peak_cpu, peak_memory_mb, cpu_monitor_handle) =
@@ -169,13 +187,13 @@ async fn import_characters(pool: &PgPool, args: &Args) -> Result<()> {
     }
 
     let filter_start = Instant::now();
-    let last_exec = read_last_execution();
     let chr_files = filter_modified_since(all_files, last_exec);
     let filter_secs = filter_start.elapsed().as_secs_f64();
 
     if chr_files.is_empty() {
-        info!("No hay archivos modificados desde la última ejecución");
-        write_last_execution()?;
+        info!(
+            "Personajes: no hay archivos modificados desde la última ejecución"
+        );
         return Ok(());
     }
 
@@ -187,8 +205,6 @@ async fn import_characters(pool: &PgPool, args: &Args) -> Result<()> {
     let (inserted, insert_errors) =
         insert_charfiles(pool, &char_data, args.batch_size).await;
     let insert_secs = insert_start.elapsed().as_secs_f64();
-
-    write_last_execution()?;
 
     let total_secs = total_start.elapsed().as_secs_f64();
 
@@ -233,6 +249,45 @@ async fn import_characters(pool: &PgPool, args: &Args) -> Result<()> {
             total_secs
         );
     }
+
+    Ok(())
+}
+
+/// Parses and imports NPCs.dat into the database.
+async fn import_npcs(
+    pool: &PgPool,
+    args: &Args,
+    last_exec: Option<std::time::SystemTime>,
+) -> Result<()> {
+    let npcs_path = args.dats_dir.join("NPCs.dat");
+
+    if !npcs_path.exists() {
+        warn!("NPCs.dat no encontrado en {}", npcs_path.display());
+        return Ok(());
+    }
+
+    if !was_modified_since(&npcs_path, last_exec) {
+        info!("NPCs: no modificado desde la última ejecución");
+        return Ok(());
+    }
+
+    let start = Instant::now();
+
+    let parsed_npcs =
+        parse_npcs_file(&npcs_path).context("Error parseando NPCs.dat")?;
+
+    let npc_count = parsed_npcs.len();
+    let npc_data = prepare_npc_data(parsed_npcs);
+
+    let (inserted, errors) =
+        insert_npcs(pool, &npc_data, args.batch_size).await;
+
+    let elapsed = start.elapsed().as_secs_f64();
+
+    info!(
+        "NPCs: {} parseados, {} insertados, {} errores, {:.3}s",
+        npc_count, inserted, errors, elapsed
+    );
 
     Ok(())
 }

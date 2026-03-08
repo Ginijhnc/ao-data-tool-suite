@@ -1,12 +1,18 @@
 //! Database operations for storing parsed game data.
 //!
-//! ## Planned Modules
+//! ## Implemented
 //!
-//! - `objects` - obj.dat
-//! - `npcs` - NPCs.dat
-//! - `spells` - Hechizos.dat
-//! - `crafting` - `ObjCarpintero`, `ArmadurasHerrero`, `ArmasHerrero`
+//! - Character files (.CHR)
+//! - NPC definitions (NPCs.dat)
+//!
+//! ## Planned
+//!
+//! - Objects (obj.dat)
+//! - Spells (Hechizos.dat)
+//! - Crafting (`ObjCarpintero`, `ArmadurasHerrero`, `ArmasHerrero`)
 
 mod characters;
+mod npcs;
 
 pub use characters::insert_charfiles;
+pub use npcs::{NpcData, insert_npcs, prepare_npc_data};
