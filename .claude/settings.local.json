@@ -10,6 +10,8 @@
       "Bash(cargo build:*)",
       "Bash(cargo fmt:*)",
       "Bash(cargo clippy:*)",
+      "Bash(cargo audit:*)",
+      "Bash(cargo deny:*)",
       "Bash(cat:*)",
       "Bash(gh pr view:*)",
       "Bash(ls:*)",

@@ -240,3 +240,10 @@ cargo doc --workspace --no-deps --open # Build and open in browser
 cargo doc -p ao_data_to_sql            # Build docs for a specific crate
 RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps  # Fail on doc warnings
 ```
+
+### Security Audit
+
+```bash
+cargo audit                                        # Check for known vulnerabilities
+cargo deny check advisories licenses bans sources  # Full dependency policy check
+```
