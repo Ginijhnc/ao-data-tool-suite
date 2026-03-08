@@ -8,8 +8,10 @@ services:
     environment:
       - DB_HOST=host.docker.internal
       - CHARFILE_DIR=/ao-server/Charfile
+      - DATS_DIR=/ao-server/Server/Dat
     volumes:
       - ${CHARFILE_DIR}:/ao-server/Charfile:ro
+      - ${DATS_DIR}:/ao-server/Server/Dat:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
 

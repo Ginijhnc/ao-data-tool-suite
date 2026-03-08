@@ -23,7 +23,10 @@ use clap::Parser;
 use sqlx::PgPool;
 use tracing::{info, warn};
 
-use ao_data_to_sql::db::{insert_charfiles, insert_npcs, prepare_npc_data};
+use ao_data_to_sql::db::{
+    insert_charfiles, insert_npcs, insert_objects, prepare_npc_data,
+    prepare_object_data,
+};
 use ao_data_to_sql::execution_tracking::{
     filter_modified_since, read_last_execution, was_modified_since,
     write_last_execution,
@@ -32,6 +35,7 @@ use ao_data_to_sql::parsers::characters::{
     discover_chr_files, parse_charfiles,
 };
 use ao_data_to_sql::parsers::dat::npcs::parse_npcs_file;
+use ao_data_to_sql::parsers::dat::objects::parse_objects_file;
 use ao_data_to_sql::profiling;
 
 /// CLI arguments for the import tool.
@@ -99,6 +103,7 @@ async fn run() -> Result<()> {
 
     import_characters(&pool, &args, last_exec).await?;
     import_npcs(&pool, &args, last_exec).await?;
+    import_objects(&pool, &args, last_exec).await?;
 
     write_last_execution()?;
 
@@ -292,6 +297,45 @@ async fn import_npcs(
     Ok(())
 }
 
+/// Parses and imports Obj.dat into the database.
+async fn import_objects(
+    pool: &PgPool,
+    args: &Args,
+    last_exec: Option<std::time::SystemTime>,
+) -> Result<()> {
+    let objects_path = args.dats_dir.join("Obj.dat");
+
+    if !objects_path.exists() {
+        warn!("Obj.dat no encontrado en {}", objects_path.display());
+        return Ok(());
+    }
+
+    if !was_modified_since(&objects_path, last_exec) {
+        info!("Objetos: no modificado desde la ultima ejecucion");
+        return Ok(());
+    }
+
+    let start = Instant::now();
+
+    let parsed_objects = parse_objects_file(&objects_path)
+        .context("Error parseando Obj.dat")?;
+
+    let object_count = parsed_objects.len();
+    let object_data = prepare_object_data(parsed_objects);
+
+    let (inserted, errors) =
+        insert_objects(pool, &object_data, args.batch_size).await;
+
+    let elapsed = start.elapsed().as_secs_f64();
+
+    info!(
+        "Objetos: {} parseados, {} insertados, {} errores, {:.3}s",
+        object_count, inserted, errors, elapsed
+    );
+
+    Ok(())
+}
+
 /// Logs a formatted summary of the import process with counts and timings.
 #[allow(
     clippy::cognitive_complexity,
@@ -333,7 +377,7 @@ fn print_summary(
     };
 
     info!("========================================");
-    info!("RESUMEN DE IMPORTACIÓN");
+    info!("RESUMEN DE IMPORTACIÓN - PERSONAJES");
     info!("========================================");
     info!("Archivos encontrados:      {}", found);
     info!("Archivos parseados:        {}", parsed);

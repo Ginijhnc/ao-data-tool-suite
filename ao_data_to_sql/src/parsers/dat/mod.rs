@@ -3,10 +3,10 @@
 //! ## Implemented Modules
 //!
 //! - [`npcs`] - NPCs.dat
+//! - [`objects`] - Obj.dat
 //!
 //! ## Planned Modules
 //!
-//! - `objects` - obj.dat
 //! - `spells` - Hechizos.dat
 //! - `cities` - Ciudades.dat
 //! - `balance` - Balance.dat
@@ -14,3 +14,4 @@
 //! - `factions` - ArmadurasFaccionarias.dat
 
 pub mod npcs;
+pub mod objects;
