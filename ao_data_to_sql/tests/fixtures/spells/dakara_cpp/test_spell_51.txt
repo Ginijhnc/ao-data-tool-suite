@@ -1,0 +1,19 @@
+
+[HECHIZO51]
+Nombre=Hechizo de prueba incremental
+Desc=Un hechizo de prueba para tests incrementales.
+PalabrasMagicas=TEST SPELL
+HechizeroMsg=Has lanzado un hechizo de prueba sobre
+TargetMsg=te ha lanzado un hechizo de prueba.
+PropioMsg=Te has lanzado un hechizo de prueba.
+Tipo=1
+WAV=16
+FXgrh=2
+Loops=2
+MinSkill=10
+ManaRequerido=12
+StaRequerido=1
+Target=1
+SubeHP=0
+MinHP=0
+MaxHP=0
