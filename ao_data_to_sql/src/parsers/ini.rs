@@ -3,8 +3,12 @@
 //! Handles `[SECTION]` headers and `KEY=VALUE` pairs.
 //! Supports section comments like `[NPC52] 'Propiedades Bander`.
 //! Tries UTF-8 first, falls back to Windows-1252 for legacy VB6 servers.
+//!
+//! Also provides generic DAT file parsing for files following the
+//! `[PREFIX{id}]` section pattern (NPCs.dat, Obj.dat, Hechizos.dat, etc.).
 
 use std::collections::HashMap;
+use std::path::Path;
 
 use encoding_rs::WINDOWS_1252;
 use thiserror::Error;
@@ -16,6 +20,33 @@ pub enum IniParseError {
     /// File encoding could not be determined.
     #[error("Error de codificación en archivo")]
     EncodingError,
+}
+
+/// DAT file parsing errors.
+#[derive(Error, Debug)]
+#[non_exhaustive]
+pub enum DatParseError {
+    /// File could not be read.
+    #[error("Error leyendo archivo: {0}")]
+    IoError(#[from] std::io::Error),
+    /// INI parsing failed.
+    #[error("Error parseando archivo: {0}")]
+    ParseError(#[from] IniParseError),
+}
+
+/// Result type for DAT parsing operations.
+pub type DatParseResult<T> = core::result::Result<T, DatParseError>;
+
+/// A parsed DAT entry with ID extracted from section name.
+#[derive(Debug)]
+#[non_exhaustive]
+pub struct ParsedDatEntry {
+    /// Entry ID from section name (e.g., `[NPC34]` -> 34).
+    pub id: i32,
+    /// Entry name from the specified name field (empty if not found).
+    pub name: String,
+    /// All entry data as key-value pairs.
+    pub data: IniSection,
 }
 
 /// A single INI section: key-value pairs.
@@ -99,4 +130,51 @@ fn parse_section_header(line: &str) -> Option<(String, Option<String>)> {
     });
 
     Some((section_name, comment))
+}
+
+/// Extracts numeric ID from section name by stripping the given prefix.
+///
+/// For example, `extract_section_id("NPC34", "NPC")` returns `Some(34)`.
+#[must_use]
+pub fn extract_section_id(section: &str, prefix: &str) -> Option<i32> {
+    section.strip_prefix(prefix).and_then(|n| n.parse().ok())
+}
+
+/// Parses a DAT file into individual entries.
+///
+/// The `section_prefix` determines which sections to extract (e.g., `"NPC"`, `"OBJ"`).
+/// The `name_field` specifies which field contains the entry name (e.g., `"NAME"`, `"Nombre"`).
+/// Pass an empty string for `name_field` if entries have no name field.
+pub fn parse_dat_file(
+    path: &Path,
+    section_prefix: &str,
+    name_field: &str,
+) -> DatParseResult<Vec<ParsedDatEntry>> {
+    let bytes = std::fs::read(path)?;
+    let ini_data = parse_ini_bytes(&bytes)?;
+
+    let mut entries = Vec::new();
+
+    for (section_name, section_data) in ini_data {
+        let Some(id) = extract_section_id(&section_name, section_prefix)
+        else {
+            continue;
+        };
+
+        let name = if name_field.is_empty() {
+            String::new()
+        } else {
+            section_data.get(name_field).cloned().unwrap_or_default()
+        };
+
+        entries.push(ParsedDatEntry {
+            id,
+            name,
+            data: section_data,
+        });
+    }
+
+    entries.sort_by_key(|entry| entry.id);
+
+    Ok(entries)
 }
