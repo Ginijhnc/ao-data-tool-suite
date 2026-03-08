@@ -20,7 +20,9 @@ WORKDIR /app
 COPY --from=builder /app/target/release/ao_data_to_sql /usr/local/bin/
 COPY --from=builder /app/ao_data_to_sql/migrations ./ao_data_to_sql/migrations
 
-RUN useradd -r -s /bin/false aouser
+RUN useradd -r -s /bin/false aouser && \
+    chown -R aouser:aouser /app
+
 USER aouser
 
 CMD ["ao_data_to_sql"]

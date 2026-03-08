@@ -1,0 +1,14 @@
+
+[OBJ1126]
+Name=Teleport a Dungeon Newbie
+GrhIndex=669
+ObjType=19
+Agarrable=1
+LightWhenEquipped=0
+LightWhenOnGround=1
+LightColor=#fc83eb
+LightRadius=0.25
+LightIntensity=0.8
+LightAnimated=1
+LightSpeed=2
+LightVariance=0.15
