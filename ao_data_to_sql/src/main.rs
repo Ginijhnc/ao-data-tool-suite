@@ -5,8 +5,7 @@
 //! ## Supported File Types
 //!
 //! - `.CHR` - Character save files (implemented)
-//! - `NPCs.dat` - NPC definitions (implemented)
-//! - `.DAT` - Objects, spells, cities, etc. (planned)
+//! - `.DAT` - NPCs, objects, spells (implemented); cities, balance, crafting (planned)
 //! - `.map/.inf` - Map tiles and metadata (planned)
 
 #![allow(
@@ -24,8 +23,8 @@ use sqlx::PgPool;
 use tracing::{info, warn};
 
 use ao_data_to_sql::db::{
-    insert_charfiles, insert_npcs, insert_objects, prepare_npc_data,
-    prepare_object_data,
+    insert_charfiles, insert_npcs, insert_objects, insert_spells,
+    prepare_npc_data, prepare_object_data, prepare_spell_data,
 };
 use ao_data_to_sql::execution_tracking::{
     filter_modified_since, read_last_execution, was_modified_since,
@@ -36,6 +35,7 @@ use ao_data_to_sql::parsers::characters::{
 };
 use ao_data_to_sql::parsers::dat::npcs::parse_npcs_file;
 use ao_data_to_sql::parsers::dat::objects::parse_objects_file;
+use ao_data_to_sql::parsers::dat::spells::parse_spells_file;
 use ao_data_to_sql::profiling;
 
 /// CLI arguments for the import tool.
@@ -104,6 +104,7 @@ async fn run() -> Result<()> {
     import_characters(&pool, &args, last_exec).await?;
     import_npcs(&pool, &args, last_exec).await?;
     import_objects(&pool, &args, last_exec).await?;
+    import_spells(&pool, &args, last_exec).await?;
 
     write_last_execution()?;
 
@@ -331,6 +332,45 @@ async fn import_objects(
     info!(
         "Objetos: {} parseados, {} insertados, {} errores, {:.3}s",
         object_count, inserted, errors, elapsed
+    );
+
+    Ok(())
+}
+
+/// Parses and imports Hechizos.dat into the database.
+async fn import_spells(
+    pool: &PgPool,
+    args: &Args,
+    last_exec: Option<std::time::SystemTime>,
+) -> Result<()> {
+    let spells_path = args.dats_dir.join("Hechizos.dat");
+
+    if !spells_path.exists() {
+        warn!("Hechizos.dat no encontrado en {}", spells_path.display());
+        return Ok(());
+    }
+
+    if !was_modified_since(&spells_path, last_exec) {
+        info!("Hechizos: no modificado desde la ultima ejecucion");
+        return Ok(());
+    }
+
+    let start = Instant::now();
+
+    let parsed_spells = parse_spells_file(&spells_path)
+        .context("Error parseando Hechizos.dat")?;
+
+    let spell_count = parsed_spells.len();
+    let spell_data = prepare_spell_data(parsed_spells);
+
+    let (inserted, errors) =
+        insert_spells(pool, &spell_data, args.batch_size).await;
+
+    let elapsed = start.elapsed().as_secs_f64();
+
+    info!(
+        "Hechizos: {} parseados, {} insertados, {} errores, {:.3}s",
+        spell_count, inserted, errors, elapsed
     );
 
     Ok(())

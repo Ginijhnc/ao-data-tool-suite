@@ -4,10 +4,10 @@
 //!
 //! - [`npcs`] - NPCs.dat
 //! - [`objects`] - Obj.dat
+//! - [`spells`] - Hechizos.dat
 //!
 //! ## Planned Modules
 //!
-//! - `spells` - Hechizos.dat
 //! - `cities` - Ciudades.dat
 //! - `balance` - Balance.dat
 //! - `crafting` - `ArmadurasHerrero`, `ArmasHerrero`, `ObjCarpintero`
@@ -15,3 +15,4 @@
 
 pub mod npcs;
 pub mod objects;
+pub mod spells;
