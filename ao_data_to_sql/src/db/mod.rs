@@ -6,16 +6,22 @@
 //! - NPC definitions (NPCs.dat)
 //! - Object definitions (Obj.dat)
 //! - Spell definitions (Hechizos.dat)
+//! - Carpenter objects (ObjCarpintero.dat)
 //!
 //! ## Planned
 //!
-//! - Crafting (`ObjCarpintero`, `ArmadurasHerrero`, `ArmasHerrero`)
+//! - Crafting (`ArmadurasHerrero`, `ArmasHerrero`)
 
+mod carpenter;
 mod characters;
 mod npcs;
 mod objects;
 mod spells;
 
+pub use carpenter::{
+    CarpenterObjectData, insert_carpenter_objects,
+    prepare_carpenter_object_data,
+};
 pub use characters::insert_charfiles;
 pub use npcs::{NpcData, insert_npcs, prepare_npc_data};
 pub use objects::{ObjectData, insert_objects, prepare_object_data};

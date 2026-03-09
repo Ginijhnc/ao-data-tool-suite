@@ -23,8 +23,9 @@ use sqlx::PgPool;
 use tracing::{info, warn};
 
 use ao_data_to_sql::db::{
-    insert_charfiles, insert_npcs, insert_objects, insert_spells,
-    prepare_npc_data, prepare_object_data, prepare_spell_data,
+    insert_carpenter_objects, insert_charfiles, insert_npcs, insert_objects,
+    insert_spells, prepare_carpenter_object_data, prepare_npc_data,
+    prepare_object_data, prepare_spell_data,
 };
 use ao_data_to_sql::execution_tracking::{
     filter_modified_since, read_last_execution, was_modified_since,
@@ -33,6 +34,7 @@ use ao_data_to_sql::execution_tracking::{
 use ao_data_to_sql::parsers::characters::{
     discover_chr_files, parse_charfiles,
 };
+use ao_data_to_sql::parsers::dat::carpenter::parse_carpenter_file;
 use ao_data_to_sql::parsers::dat::npcs::parse_npcs_file;
 use ao_data_to_sql::parsers::dat::objects::parse_objects_file;
 use ao_data_to_sql::parsers::dat::spells::parse_spells_file;
@@ -105,6 +107,7 @@ async fn run() -> Result<()> {
     import_npcs(&pool, &args, last_exec).await?;
     import_objects(&pool, &args, last_exec).await?;
     import_spells(&pool, &args, last_exec).await?;
+    import_carpenter_objects(&pool, &args, last_exec).await?;
 
     write_last_execution()?;
 
@@ -371,6 +374,48 @@ async fn import_spells(
     info!(
         "Hechizos: {} parseados, {} insertados, {} errores, {:.3}s",
         spell_count, inserted, errors, elapsed
+    );
+
+    Ok(())
+}
+
+/// Parses and imports ObjCarpintero.dat into the database.
+async fn import_carpenter_objects(
+    pool: &PgPool,
+    args: &Args,
+    last_exec: Option<std::time::SystemTime>,
+) -> Result<()> {
+    let carpenter_path = args.dats_dir.join("ObjCarpintero.dat");
+
+    if !carpenter_path.exists() {
+        warn!(
+            "ObjCarpintero.dat no encontrado en {}",
+            carpenter_path.display()
+        );
+        return Ok(());
+    }
+
+    if !was_modified_since(&carpenter_path, last_exec) {
+        info!("ObjCarpintero: no modificado desde la ultima ejecucion");
+        return Ok(());
+    }
+
+    let start = Instant::now();
+
+    let parsed_objects = parse_carpenter_file(&carpenter_path)
+        .context("Error parseando ObjCarpintero.dat")?;
+
+    let object_count = parsed_objects.len();
+    let object_data = prepare_carpenter_object_data(parsed_objects);
+
+    let (inserted, errors) =
+        insert_carpenter_objects(pool, &object_data, args.batch_size).await;
+
+    let elapsed = start.elapsed().as_secs_f64();
+
+    info!(
+        "ObjCarpintero: {} parseados, {} insertados, {} errores, {:.3}s",
+        object_count, inserted, errors, elapsed
     );
 
     Ok(())
