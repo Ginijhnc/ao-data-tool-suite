@@ -4,6 +4,7 @@
       "Bash(git fetch:*)",
       "Bash(git status:*)",
       "Bash(git log:*)",
+      "Bash(git show:*)",
       "Bash(cargo check:*)",
       "Bash(cargo test:*)",
       "Bash(cargo doc:*)",

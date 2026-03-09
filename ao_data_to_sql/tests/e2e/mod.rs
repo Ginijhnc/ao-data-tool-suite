@@ -1,3 +1,4 @@
+mod carpenter;
 mod characters;
 mod dat;
 mod maps;
