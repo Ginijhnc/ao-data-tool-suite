@@ -1,3 +1,4 @@
+mod blacksmith_armors;
 mod carpenter;
 mod characters;
 mod dat;
