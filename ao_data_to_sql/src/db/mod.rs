@@ -7,17 +7,23 @@
 //! - Object definitions (Obj.dat)
 //! - Spell definitions (Hechizos.dat)
 //! - Carpenter objects (ObjCarpintero.dat)
+//! - Blacksmith armors (ArmadurasHerrero.dat)
 //!
 //! ## Planned
 //!
-//! - Crafting (`ArmadurasHerrero`, `ArmasHerrero`)
+//! - Crafting (`ArmasHerrero`)
 
+mod blacksmith_armors;
 mod carpenter;
 mod characters;
 mod npcs;
 mod objects;
 mod spells;
 
+pub use blacksmith_armors::{
+    BlacksmithArmorData, insert_blacksmith_armors,
+    prepare_blacksmith_armor_data,
+};
 pub use carpenter::{
     CarpenterObjectData, insert_carpenter_objects,
     prepare_carpenter_object_data,

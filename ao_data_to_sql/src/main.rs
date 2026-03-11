@@ -23,9 +23,10 @@ use sqlx::PgPool;
 use tracing::{info, warn};
 
 use ao_data_to_sql::db::{
-    insert_carpenter_objects, insert_charfiles, insert_npcs, insert_objects,
-    insert_spells, prepare_carpenter_object_data, prepare_npc_data,
-    prepare_object_data, prepare_spell_data,
+    insert_blacksmith_armors, insert_carpenter_objects, insert_charfiles,
+    insert_npcs, insert_objects, insert_spells, prepare_blacksmith_armor_data,
+    prepare_carpenter_object_data, prepare_npc_data, prepare_object_data,
+    prepare_spell_data,
 };
 use ao_data_to_sql::execution_tracking::{
     filter_modified_since, read_last_execution, was_modified_since,
@@ -34,6 +35,7 @@ use ao_data_to_sql::execution_tracking::{
 use ao_data_to_sql::parsers::characters::{
     discover_chr_files, parse_charfiles,
 };
+use ao_data_to_sql::parsers::dat::blacksmith_armors::parse_blacksmith_armors_file;
 use ao_data_to_sql::parsers::dat::carpenter::parse_carpenter_file;
 use ao_data_to_sql::parsers::dat::npcs::parse_npcs_file;
 use ao_data_to_sql::parsers::dat::objects::parse_objects_file;
@@ -108,6 +110,7 @@ async fn run() -> Result<()> {
     import_objects(&pool, &args, last_exec).await?;
     import_spells(&pool, &args, last_exec).await?;
     import_carpenter_objects(&pool, &args, last_exec).await?;
+    import_blacksmith_armors(&pool, &args, last_exec).await?;
 
     write_last_execution()?;
 
@@ -416,6 +419,48 @@ async fn import_carpenter_objects(
     info!(
         "ObjCarpintero: {} parseados, {} insertados, {} errores, {:.3}s",
         object_count, inserted, errors, elapsed
+    );
+
+    Ok(())
+}
+
+/// Parses and imports ArmadurasHerrero.dat into the database.
+async fn import_blacksmith_armors(
+    pool: &PgPool,
+    args: &Args,
+    last_exec: Option<std::time::SystemTime>,
+) -> Result<()> {
+    let armors_path = args.dats_dir.join("ArmadurasHerrero.dat");
+
+    if !armors_path.exists() {
+        warn!(
+            "ArmadurasHerrero.dat no encontrado en {}",
+            armors_path.display()
+        );
+        return Ok(());
+    }
+
+    if !was_modified_since(&armors_path, last_exec) {
+        info!("ArmadurasHerrero: no modificado desde la ultima ejecucion");
+        return Ok(());
+    }
+
+    let start = Instant::now();
+
+    let parsed_armors = parse_blacksmith_armors_file(&armors_path)
+        .context("Error parseando ArmadurasHerrero.dat")?;
+
+    let armor_count = parsed_armors.len();
+    let armor_data = prepare_blacksmith_armor_data(parsed_armors);
+
+    let (inserted, errors) =
+        insert_blacksmith_armors(pool, &armor_data, args.batch_size).await;
+
+    let elapsed = start.elapsed().as_secs_f64();
+
+    info!(
+        "ArmadurasHerrero: {} parseados, {} insertados, {} errores, {:.3}s",
+        armor_count, inserted, errors, elapsed
     );
 
     Ok(())
