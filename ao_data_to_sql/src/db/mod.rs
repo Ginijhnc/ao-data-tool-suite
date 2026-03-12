@@ -9,15 +9,17 @@
 //! - Carpenter objects (ObjCarpintero.dat)
 //! - Blacksmith armors (ArmadurasHerrero.dat)
 //! - Blacksmith weapons (ArmasHerrero.dat)
+//! - Faction armors (ArmadurasFaccionarias.dat)
 //!
 //! ## Planned
 //!
-//! - Factions (ArmadurasFaccionarias.dat)
+//! - Balance (Balance.dat)
 
 mod blacksmith_armors;
 mod blacksmith_weapons;
 mod carpenter;
 mod characters;
+mod faction_armors;
 mod npcs;
 mod objects;
 mod spells;
@@ -35,6 +37,9 @@ pub use carpenter::{
     prepare_carpenter_object_data,
 };
 pub use characters::insert_charfiles;
+pub use faction_armors::{
+    FactionArmorData, insert_faction_armors, prepare_faction_armor_data,
+};
 pub use npcs::{NpcData, insert_npcs, prepare_npc_data};
 pub use objects::{ObjectData, insert_objects, prepare_object_data};
 pub use spells::{SpellData, insert_spells, prepare_spell_data};

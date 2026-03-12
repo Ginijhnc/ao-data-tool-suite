@@ -3,6 +3,7 @@ mod blacksmith_weapons;
 mod carpenter;
 mod characters;
 mod dat;
+mod faction_armors;
 mod maps;
 mod npcs;
 mod objects;
