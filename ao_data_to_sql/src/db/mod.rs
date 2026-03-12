@@ -10,11 +10,9 @@
 //! - Blacksmith armors (ArmadurasHerrero.dat)
 //! - Blacksmith weapons (ArmasHerrero.dat)
 //! - Faction armors (ArmadurasFaccionarias.dat)
-//!
-//! ## Planned
-//!
 //! - Balance (Balance.dat)
 
+mod balance;
 mod blacksmith_armors;
 mod blacksmith_weapons;
 mod carpenter;
@@ -24,6 +22,7 @@ mod npcs;
 mod objects;
 mod spells;
 
+pub use balance::{BalanceData, insert_balance, prepare_balance_data};
 pub use blacksmith_armors::{
     BlacksmithArmorData, insert_blacksmith_armors,
     prepare_blacksmith_armor_data,

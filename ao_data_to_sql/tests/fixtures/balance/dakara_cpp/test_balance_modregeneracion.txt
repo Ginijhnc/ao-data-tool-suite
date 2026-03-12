@@ -1,0 +1,6 @@
+[MODREGENERACION] ' Regeneracion De Prueba
+Guerrero=1.05
+Cazador=0.95
+Paladin=1.0
+Bandido=0.85
+Asesino=0.9

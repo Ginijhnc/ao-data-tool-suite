@@ -1,0 +1,4 @@
+CREATE TABLE IF NOT EXISTS balance (
+    section TEXT PRIMARY KEY,
+    data JSONB NOT NULL
+);

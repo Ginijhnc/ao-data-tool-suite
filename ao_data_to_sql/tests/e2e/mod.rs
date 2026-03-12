@@ -1,3 +1,4 @@
+mod balance;
 mod blacksmith_armors;
 mod blacksmith_weapons;
 mod carpenter;

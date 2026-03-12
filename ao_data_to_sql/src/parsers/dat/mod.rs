@@ -9,11 +9,9 @@
 //! - [`blacksmith_armors`] - ArmadurasHerrero.dat
 //! - [`blacksmith_weapons`] - ArmasHerrero.dat
 //! - [`faction_armors`] - ArmadurasFaccionarias.dat
-//!
-//! ## Planned Modules
-//!
-//! - `balance` - Balance.dat
+//! - [`balance`] - Balance.dat
 
+pub mod balance;
 pub mod blacksmith_armors;
 pub mod blacksmith_weapons;
 pub mod carpenter;
