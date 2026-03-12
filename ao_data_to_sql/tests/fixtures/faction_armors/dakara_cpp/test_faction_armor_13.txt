@@ -1,0 +1,13 @@
+[CLASE13]
+DefMinArmyAlto=675
+DefMinArmyBajo=676
+DefMinCaosAlto=677
+DefMinCaosBajo=678
+DefMedArmyAlto=521
+DefMedArmyBajo=492
+DefMedCaosAlto=369
+DefMedCaosBajo=379
+DefAltaArmyAlto=629
+DefAltaArmyBajo=681
+DefAltaCaosAlto=683
+DefAltaCaosBajo=685

@@ -24,10 +24,11 @@ use tracing::{info, warn};
 
 use ao_data_to_sql::db::{
     insert_blacksmith_armors, insert_blacksmith_weapons,
-    insert_carpenter_objects, insert_charfiles, insert_npcs, insert_objects,
-    insert_spells, prepare_blacksmith_armor_data,
+    insert_carpenter_objects, insert_charfiles, insert_faction_armors,
+    insert_npcs, insert_objects, insert_spells, prepare_blacksmith_armor_data,
     prepare_blacksmith_weapon_data, prepare_carpenter_object_data,
-    prepare_npc_data, prepare_object_data, prepare_spell_data,
+    prepare_faction_armor_data, prepare_npc_data, prepare_object_data,
+    prepare_spell_data,
 };
 use ao_data_to_sql::execution_tracking::{
     filter_modified_since, read_last_execution, was_modified_since,
@@ -39,6 +40,7 @@ use ao_data_to_sql::parsers::characters::{
 use ao_data_to_sql::parsers::dat::blacksmith_armors::parse_blacksmith_armors_file;
 use ao_data_to_sql::parsers::dat::blacksmith_weapons::parse_blacksmith_weapons_file;
 use ao_data_to_sql::parsers::dat::carpenter::parse_carpenter_file;
+use ao_data_to_sql::parsers::dat::faction_armors::parse_faction_armors_file;
 use ao_data_to_sql::parsers::dat::npcs::parse_npcs_file;
 use ao_data_to_sql::parsers::dat::objects::parse_objects_file;
 use ao_data_to_sql::parsers::dat::spells::parse_spells_file;
@@ -114,6 +116,7 @@ async fn run() -> Result<()> {
     import_carpenter_objects(&pool, &args, last_exec).await?;
     import_blacksmith_armors(&pool, &args, last_exec).await?;
     import_blacksmith_weapons(&pool, &args, last_exec).await?;
+    import_faction_armors(&pool, &args, last_exec).await?;
 
     write_last_execution()?;
 
@@ -506,6 +509,50 @@ async fn import_blacksmith_weapons(
     info!(
         "ArmasHerrero: {} parseados, {} insertados, {} errores, {:.3}s",
         weapon_count, inserted, errors, elapsed
+    );
+
+    Ok(())
+}
+
+/// Parses and imports ArmadurasFaccionarias.dat into the database.
+async fn import_faction_armors(
+    pool: &PgPool,
+    args: &Args,
+    last_exec: Option<std::time::SystemTime>,
+) -> Result<()> {
+    let faction_armors_path = args.dats_dir.join("ArmadurasFaccionarias.dat");
+
+    if !faction_armors_path.exists() {
+        warn!(
+            "ArmadurasFaccionarias.dat no encontrado en {}",
+            faction_armors_path.display()
+        );
+        return Ok(());
+    }
+
+    if !was_modified_since(&faction_armors_path, last_exec) {
+        info!(
+            "ArmadurasFaccionarias: no modificado desde la ultima ejecucion"
+        );
+        return Ok(());
+    }
+
+    let start = Instant::now();
+
+    let parsed_armors = parse_faction_armors_file(&faction_armors_path)
+        .context("Error parseando ArmadurasFaccionarias.dat")?;
+
+    let armor_count = parsed_armors.len();
+    let armor_data = prepare_faction_armor_data(parsed_armors);
+
+    let (inserted, errors) =
+        insert_faction_armors(pool, &armor_data, args.batch_size).await;
+
+    let elapsed = start.elapsed().as_secs_f64();
+
+    info!(
+        "ArmadurasFaccionarias: {} parseados, {} insertados, {} errores, {:.3}s",
+        armor_count, inserted, errors, elapsed
     );
 
     Ok(())

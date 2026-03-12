@@ -1,0 +1,4 @@
+CREATE TABLE IF NOT EXISTS faction_armors (
+    id INTEGER PRIMARY KEY,
+    data JSONB NOT NULL
+);
