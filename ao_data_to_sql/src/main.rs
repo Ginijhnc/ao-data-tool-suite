@@ -23,9 +23,10 @@ use sqlx::PgPool;
 use tracing::{info, warn};
 
 use ao_data_to_sql::db::{
-    insert_blacksmith_armors, insert_blacksmith_weapons,
-    insert_carpenter_objects, insert_charfiles, insert_faction_armors,
-    insert_npcs, insert_objects, insert_spells, prepare_blacksmith_armor_data,
+    BalanceData, insert_balance, insert_blacksmith_armors,
+    insert_blacksmith_weapons, insert_carpenter_objects, insert_charfiles,
+    insert_faction_armors, insert_npcs, insert_objects, insert_spells,
+    prepare_balance_data, prepare_blacksmith_armor_data,
     prepare_blacksmith_weapon_data, prepare_carpenter_object_data,
     prepare_faction_armor_data, prepare_npc_data, prepare_object_data,
     prepare_spell_data,
@@ -37,6 +38,7 @@ use ao_data_to_sql::execution_tracking::{
 use ao_data_to_sql::parsers::characters::{
     discover_chr_files, parse_charfiles,
 };
+use ao_data_to_sql::parsers::dat::balance::parse_balance_file;
 use ao_data_to_sql::parsers::dat::blacksmith_armors::parse_blacksmith_armors_file;
 use ao_data_to_sql::parsers::dat::blacksmith_weapons::parse_blacksmith_weapons_file;
 use ao_data_to_sql::parsers::dat::carpenter::parse_carpenter_file;
@@ -117,6 +119,7 @@ async fn run() -> Result<()> {
     import_blacksmith_armors(&pool, &args, last_exec).await?;
     import_blacksmith_weapons(&pool, &args, last_exec).await?;
     import_faction_armors(&pool, &args, last_exec).await?;
+    import_balance(&pool, &args, last_exec).await?;
 
     write_last_execution()?;
 
@@ -553,6 +556,45 @@ async fn import_faction_armors(
     info!(
         "ArmadurasFaccionarias: {} parseados, {} insertados, {} errores, {:.3}s",
         armor_count, inserted, errors, elapsed
+    );
+
+    Ok(())
+}
+
+/// Parses and imports Balance.dat into the database.
+async fn import_balance(
+    pool: &PgPool,
+    args: &Args,
+    last_exec: Option<std::time::SystemTime>,
+) -> Result<()> {
+    let balance_path = args.dats_dir.join("Balance.dat");
+
+    if !balance_path.exists() {
+        warn!("Balance.dat no encontrado en {}", balance_path.display());
+        return Ok(());
+    }
+
+    if !was_modified_since(&balance_path, last_exec) {
+        info!("Balance: no modificado desde la ultima ejecucion");
+        return Ok(());
+    }
+
+    let start = Instant::now();
+
+    let parsed_sections = parse_balance_file(&balance_path)
+        .context("Error parseando Balance.dat")?;
+
+    let section_count = parsed_sections.len();
+    let balance_data: Vec<BalanceData> = prepare_balance_data(parsed_sections);
+
+    let (inserted, errors) =
+        insert_balance(pool, &balance_data, args.batch_size).await;
+
+    let elapsed = start.elapsed().as_secs_f64();
+
+    info!(
+        "Balance: {} parseados, {} insertados, {} errores, {:.3}s",
+        section_count, inserted, errors, elapsed
     );
 
     Ok(())
