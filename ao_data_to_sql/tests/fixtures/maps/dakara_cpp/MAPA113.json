@@ -1,0 +1,23 @@
+{
+  "MAPA113": {
+    "PK": "0",
+    "NAME": "Isla Nueva Esperanza. (sureste)",
+    "ZONA": "CAMPO",
+    "BACKUP": "1",
+    "TERRENO": "BOSQUE",
+    "MUSICNUM": "19",
+    "RESTRINGIR": "No",
+    "INVISINEFECTO": "0",
+    "NOENCRIPTARMP": "0",
+    "RESUSINEFECTO": "0",
+    "MAGIASINEFECTO": "0",
+    "SONIDOS": [
+      { "FLAGS": "1", "SONIDO": "21", "PROBABILIDAD": "20" },
+      { "FLAGS": "1", "SONIDO": "22", "PROBABILIDAD": "20" },
+      { "FLAGS": "1", "SONIDO": "28", "PROBABILIDAD": "20" },
+      { "FLAGS": "1", "SONIDO": "29", "PROBABILIDAD": "20" },
+      { "FLAGS": "1", "SONIDO": "34", "PROBABILIDAD": "20" },
+      { "FLAGS": "0", "SONIDO": "105", "PROBABILIDAD": "80" }
+    ]
+  }
+}

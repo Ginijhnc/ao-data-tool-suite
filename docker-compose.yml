@@ -9,9 +9,11 @@ services:
       - DB_HOST=host.docker.internal
       - CHARFILE_DIR=/ao-server/Charfile
       - DATS_DIR=/ao-server/Server/Dat
+      - MAPS_DIR=/ao-server/Server/Maps
     volumes:
       - ${CHARFILE_DIR}:/ao-server/Charfile:ro
       - ${DATS_DIR}:/ao-server/Server/Dat:ro
+      - ${MAPS_DIR}:/ao-server/Server/Maps:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
 

@@ -11,6 +11,7 @@
 //! - Blacksmith weapons (ArmasHerrero.dat)
 //! - Faction armors (ArmadurasFaccionarias.dat)
 //! - Balance (Balance.dat)
+//! - Maps (mapa*.dat)
 
 mod balance;
 mod blacksmith_armors;
@@ -18,6 +19,7 @@ mod blacksmith_weapons;
 mod carpenter;
 mod characters;
 mod faction_armors;
+mod maps;
 mod npcs;
 mod objects;
 mod spells;
@@ -39,6 +41,7 @@ pub use characters::insert_charfiles;
 pub use faction_armors::{
     FactionArmorData, insert_faction_armors, prepare_faction_armor_data,
 };
+pub use maps::{MapData, insert_maps, prepare_map_data};
 pub use npcs::{NpcData, insert_npcs, prepare_npc_data};
 pub use objects::{ObjectData, insert_objects, prepare_object_data};
 pub use spells::{SpellData, insert_spells, prepare_spell_data};
