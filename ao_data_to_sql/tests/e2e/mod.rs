@@ -1,4 +1,5 @@
 mod blacksmith_armors;
+mod blacksmith_weapons;
 mod carpenter;
 mod characters;
 mod dat;
