@@ -7,15 +7,15 @@
 //! - [`spells`] - Hechizos.dat
 //! - [`carpenter`] - ObjCarpintero.dat
 //! - [`blacksmith_armors`] - ArmadurasHerrero.dat
+//! - [`blacksmith_weapons`] - ArmasHerrero.dat
 //!
 //! ## Planned Modules
 //!
-//! - `cities` - Ciudades.dat
 //! - `balance` - Balance.dat
-//! - `crafting` - `ArmasHerrero`
 //! - `factions` - ArmadurasFaccionarias.dat
 
 pub mod blacksmith_armors;
+pub mod blacksmith_weapons;
 pub mod carpenter;
 pub mod npcs;
 pub mod objects;
