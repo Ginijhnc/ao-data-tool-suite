@@ -19,17 +19,18 @@ use std::time::Instant;
 
 use anyhow::{Context, Result};
 use clap::Parser;
+use rayon::prelude::*;
 use sqlx::PgPool;
 use tracing::{info, warn};
 
 use ao_data_to_sql::db::{
     BalanceData, insert_balance, insert_blacksmith_armors,
     insert_blacksmith_weapons, insert_carpenter_objects, insert_charfiles,
-    insert_faction_armors, insert_npcs, insert_objects, insert_spells,
-    prepare_balance_data, prepare_blacksmith_armor_data,
+    insert_faction_armors, insert_maps, insert_npcs, insert_objects,
+    insert_spells, prepare_balance_data, prepare_blacksmith_armor_data,
     prepare_blacksmith_weapon_data, prepare_carpenter_object_data,
-    prepare_faction_armor_data, prepare_npc_data, prepare_object_data,
-    prepare_spell_data,
+    prepare_faction_armor_data, prepare_map_data, prepare_npc_data,
+    prepare_object_data, prepare_spell_data,
 };
 use ao_data_to_sql::execution_tracking::{
     filter_modified_since, read_last_execution, was_modified_since,
@@ -43,6 +44,7 @@ use ao_data_to_sql::parsers::dat::blacksmith_armors::parse_blacksmith_armors_fil
 use ao_data_to_sql::parsers::dat::blacksmith_weapons::parse_blacksmith_weapons_file;
 use ao_data_to_sql::parsers::dat::carpenter::parse_carpenter_file;
 use ao_data_to_sql::parsers::dat::faction_armors::parse_faction_armors_file;
+use ao_data_to_sql::parsers::dat::maps::{discover_map_files, parse_map_file};
 use ao_data_to_sql::parsers::dat::npcs::parse_npcs_file;
 use ao_data_to_sql::parsers::dat::objects::parse_objects_file;
 use ao_data_to_sql::parsers::dat::spells::parse_spells_file;
@@ -60,6 +62,10 @@ struct Args {
     /// Directory containing .DAT files (NPCs.dat, Obj.dat, etc.).
     #[arg(long, env = "DATS_DIR", default_value = "./Server/Dat")]
     dats_dir: PathBuf,
+
+    /// Directory containing map .dat files (mapa1.dat, mapa2.dat, etc.).
+    #[arg(long, env = "MAPS_DIR", default_value = "./Server/Maps")]
+    maps_dir: PathBuf,
 
     /// Number of records per database batch insert.
     #[arg(short, long, env = "BATCH_SIZE", default_value = "100")]
@@ -120,6 +126,7 @@ async fn run() -> Result<()> {
     import_blacksmith_weapons(&pool, &args, last_exec).await?;
     import_faction_armors(&pool, &args, last_exec).await?;
     import_balance(&pool, &args, last_exec).await?;
+    import_maps(&pool, &args, last_exec).await?;
 
     write_last_execution()?;
 
@@ -595,6 +602,80 @@ async fn import_balance(
     info!(
         "Balance: {} parseados, {} insertados, {} errores, {:.3}s",
         section_count, inserted, errors, elapsed
+    );
+
+    Ok(())
+}
+
+/// Use a fixed batch size for maps since the total count is typically small
+/// (around 500 maps on average). Not worth making this configurable via .env.
+const MAP_BATCH_SIZE: usize = 100;
+
+/// Parses and imports map .dat files into the database.
+async fn import_maps(
+    pool: &PgPool,
+    args: &Args,
+    last_exec: Option<std::time::SystemTime>,
+) -> Result<()> {
+    if !args.maps_dir.exists() {
+        warn!(
+            "Directorio de mapas no encontrado: {}",
+            args.maps_dir.display()
+        );
+        return Ok(());
+    }
+
+    let map_file_paths = discover_map_files(&args.maps_dir);
+
+    if map_file_paths.is_empty() {
+        warn!(
+            "No se encontraron archivos de mapas en {}",
+            args.maps_dir.display()
+        );
+        return Ok(());
+    }
+
+    let map_files: Vec<_> = map_file_paths
+        .into_iter()
+        .filter_map(|path| {
+            std::fs::metadata(&path)
+                .ok()
+                .and_then(|m| m.modified().ok())
+                .map(|modified| (path, modified))
+        })
+        .collect();
+
+    let modified_files = filter_modified_since(map_files, last_exec);
+
+    if modified_files.is_empty() {
+        info!("Mapas: ninguno modificado desde la ultima ejecucion");
+        return Ok(());
+    }
+
+    let start = Instant::now();
+
+    let parsed_maps: Vec<_> = modified_files
+        .par_iter()
+        .filter_map(|path| match parse_map_file(path) {
+            Ok(map) => Some(map),
+            Err(e) => {
+                warn!("Error parseando {:?}: {}", path, e);
+                None
+            }
+        })
+        .collect();
+
+    let map_count = parsed_maps.len();
+    let map_data = prepare_map_data(parsed_maps);
+
+    let (inserted, errors) =
+        insert_maps(pool, &map_data, MAP_BATCH_SIZE).await;
+
+    let elapsed = start.elapsed().as_secs_f64();
+
+    info!(
+        "Mapas: {} parseados, {} insertados, {} errores, {:.3}s",
+        map_count, inserted, errors, elapsed
     );
 
     Ok(())
