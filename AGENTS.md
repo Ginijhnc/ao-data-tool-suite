@@ -193,6 +193,7 @@ Use `//!` for module/crate docs and `///` for item docs (functions, structs, enu
 - Always include a commit body describing **what the change does and why it exists**, not how it is implemented
 - Do not reference function/file names or hard-coded values; keep the body implementation-agnostic and future-proof
 - The commit message should be a single continuous block with title and body together, separated by a blank line (do not separate them into different sections)
+- Wrap commit message body to **maximum 80 characters per line** for readability in terminals and git tools
 
 ### Scopes
 
