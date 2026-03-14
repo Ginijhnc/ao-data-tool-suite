@@ -33,9 +33,12 @@ pub struct ParsedBalanceSection {
 /// `parse_dat_file` cannot be used here because it requires a shared numeric
 /// prefix per section (e.g. `[NPC34]`) and maps to an `INTEGER` primary key.
 /// The balance table instead uses `TEXT` keyed by section name.
-pub fn parse_balance_file(path: &Path) -> Result<Vec<ParsedBalanceSection>> {
+pub fn parse_balance_file(
+    path: &Path,
+    strip_inline_comments: bool,
+) -> Result<Vec<ParsedBalanceSection>> {
     let bytes = std::fs::read(path)?;
-    let ini_data = parse_ini_bytes(&bytes)?;
+    let ini_data = parse_ini_bytes(&bytes, strip_inline_comments)?;
 
     let mut sections: Vec<ParsedBalanceSection> = ini_data
         .into_iter()

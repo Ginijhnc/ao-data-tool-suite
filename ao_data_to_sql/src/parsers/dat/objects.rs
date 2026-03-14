@@ -18,6 +18,9 @@ pub type Result<T> = DatParseResult<T>;
 pub type ParsedObject = ParsedDatEntry;
 
 /// Parses Obj.dat file into individual object records.
-pub fn parse_objects_file(path: &Path) -> Result<Vec<ParsedObject>> {
-    parse_dat_file(path, "OBJ", "NAME")
+pub fn parse_objects_file(
+    path: &Path,
+    strip_inline_comments: bool,
+) -> Result<Vec<ParsedObject>> {
+    parse_dat_file(path, "OBJ", "NAME", strip_inline_comments)
 }

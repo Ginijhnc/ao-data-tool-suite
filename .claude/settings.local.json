@@ -6,6 +6,7 @@
       "Bash(git log:*)",
       "Bash(git show:*)",
       "Bash(git diff-tree:*)",
+      "Bash(git diff:*)",
       "Bash(cargo check:*)",
       "Bash(cargo test:*)",
       "Bash(cargo doc:*)",

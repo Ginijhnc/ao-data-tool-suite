@@ -18,6 +18,9 @@ pub type Result<T> = DatParseResult<T>;
 pub type ParsedNpc = ParsedDatEntry;
 
 /// Parses NPCs.dat file into individual NPC records.
-pub fn parse_npcs_file(path: &Path) -> Result<Vec<ParsedNpc>> {
-    parse_dat_file(path, "NPC", "NAME")
+pub fn parse_npcs_file(
+    path: &Path,
+    strip_inline_comments: bool,
+) -> Result<Vec<ParsedNpc>> {
+    parse_dat_file(path, "NPC", "NAME", strip_inline_comments)
 }

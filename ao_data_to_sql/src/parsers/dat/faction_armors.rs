@@ -21,6 +21,7 @@ pub type ParsedFactionArmor = ParsedDatEntry;
 /// Parses ArmadurasFaccionarias.dat file into individual class records.
 pub fn parse_faction_armors_file(
     path: &Path,
+    strip_inline_comments: bool,
 ) -> Result<Vec<ParsedFactionArmor>> {
-    parse_dat_file(path, "CLASE", "")
+    parse_dat_file(path, "CLASE", "", strip_inline_comments)
 }

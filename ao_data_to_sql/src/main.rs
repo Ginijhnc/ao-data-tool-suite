@@ -99,6 +99,15 @@ struct Args {
         help = "Habilitar profiling detallado de rendimiento"
     )]
     enable_profiling: bool,
+
+    /// Strip inline comments (text after ') from DAT file fields.
+    #[arg(
+        long,
+        env = "STRIP_DAT_INLINE_COMMENTS",
+        default_value = "true",
+        help = "Strip inline comments (text after ') from DAT fields (though it intentionally preserves section header comments)"
+    )]
+    strip_dat_inline_comments: bool,
 }
 
 #[tokio::main]
@@ -302,7 +311,8 @@ async fn import_npcs(
     let start = Instant::now();
 
     let parsed_npcs =
-        parse_npcs_file(&npcs_path).context("Error parseando NPCs.dat")?;
+        parse_npcs_file(&npcs_path, args.strip_dat_inline_comments)
+            .context("Error parseando NPCs.dat")?;
 
     let npc_count = parsed_npcs.len();
     let npc_data = prepare_npc_data(parsed_npcs);
@@ -340,8 +350,9 @@ async fn import_objects(
 
     let start = Instant::now();
 
-    let parsed_objects = parse_objects_file(&objects_path)
-        .context("Error parseando Obj.dat")?;
+    let parsed_objects =
+        parse_objects_file(&objects_path, args.strip_dat_inline_comments)
+            .context("Error parseando Obj.dat")?;
 
     let object_count = parsed_objects.len();
     let object_data = prepare_object_data(parsed_objects);
@@ -379,8 +390,9 @@ async fn import_spells(
 
     let start = Instant::now();
 
-    let parsed_spells = parse_spells_file(&spells_path)
-        .context("Error parseando Hechizos.dat")?;
+    let parsed_spells =
+        parse_spells_file(&spells_path, args.strip_dat_inline_comments)
+            .context("Error parseando Hechizos.dat")?;
 
     let spell_count = parsed_spells.len();
     let spell_data = prepare_spell_data(parsed_spells);
@@ -421,8 +433,9 @@ async fn import_carpenter_objects(
 
     let start = Instant::now();
 
-    let parsed_objects = parse_carpenter_file(&carpenter_path)
-        .context("Error parseando ObjCarpintero.dat")?;
+    let parsed_objects =
+        parse_carpenter_file(&carpenter_path, args.strip_dat_inline_comments)
+            .context("Error parseando ObjCarpintero.dat")?;
 
     let object_count = parsed_objects.len();
     let object_data = prepare_carpenter_object_data(parsed_objects);
@@ -463,8 +476,11 @@ async fn import_blacksmith_armors(
 
     let start = Instant::now();
 
-    let parsed_armors = parse_blacksmith_armors_file(&armors_path)
-        .context("Error parseando ArmadurasHerrero.dat")?;
+    let parsed_armors = parse_blacksmith_armors_file(
+        &armors_path,
+        args.strip_dat_inline_comments,
+    )
+    .context("Error parseando ArmadurasHerrero.dat")?;
 
     let armor_count = parsed_armors.len();
     let armor_data = prepare_blacksmith_armor_data(parsed_armors);
@@ -505,8 +521,11 @@ async fn import_blacksmith_weapons(
 
     let start = Instant::now();
 
-    let parsed_weapons = parse_blacksmith_weapons_file(&weapons_path)
-        .context("Error parseando ArmasHerrero.dat")?;
+    let parsed_weapons = parse_blacksmith_weapons_file(
+        &weapons_path,
+        args.strip_dat_inline_comments,
+    )
+    .context("Error parseando ArmasHerrero.dat")?;
 
     let weapon_count = parsed_weapons.len();
     let weapon_data = prepare_blacksmith_weapon_data(parsed_weapons);
@@ -549,8 +568,11 @@ async fn import_faction_armors(
 
     let start = Instant::now();
 
-    let parsed_armors = parse_faction_armors_file(&faction_armors_path)
-        .context("Error parseando ArmadurasFaccionarias.dat")?;
+    let parsed_armors = parse_faction_armors_file(
+        &faction_armors_path,
+        args.strip_dat_inline_comments,
+    )
+    .context("Error parseando ArmadurasFaccionarias.dat")?;
 
     let armor_count = parsed_armors.len();
     let armor_data = prepare_faction_armor_data(parsed_armors);
@@ -588,8 +610,9 @@ async fn import_balance(
 
     let start = Instant::now();
 
-    let parsed_sections = parse_balance_file(&balance_path)
-        .context("Error parseando Balance.dat")?;
+    let parsed_sections =
+        parse_balance_file(&balance_path, args.strip_dat_inline_comments)
+            .context("Error parseando Balance.dat")?;
 
     let section_count = parsed_sections.len();
     let balance_data: Vec<BalanceData> = prepare_balance_data(parsed_sections);
@@ -656,11 +679,13 @@ async fn import_maps(
 
     let parsed_maps: Vec<_> = modified_files
         .par_iter()
-        .filter_map(|path| match parse_map_file(path) {
-            Ok(map) => Some(map),
-            Err(e) => {
-                warn!("Error parseando {:?}: {}", path, e);
-                None
+        .filter_map(|path| {
+            match parse_map_file(path, args.strip_dat_inline_comments) {
+                Ok(map) => Some(map),
+                Err(e) => {
+                    warn!("Error parseando {:?}: {}", path, e);
+                    None
+                }
             }
         })
         .collect();

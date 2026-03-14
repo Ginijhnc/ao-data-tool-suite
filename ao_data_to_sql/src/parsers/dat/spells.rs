@@ -18,6 +18,9 @@ pub type Result<T> = DatParseResult<T>;
 pub type ParsedSpell = ParsedDatEntry;
 
 /// Parses Hechizos.dat file into individual spell records.
-pub fn parse_spells_file(path: &Path) -> Result<Vec<ParsedSpell>> {
-    parse_dat_file(path, "HECHIZO", "NOMBRE")
+pub fn parse_spells_file(
+    path: &Path,
+    strip_inline_comments: bool,
+) -> Result<Vec<ParsedSpell>> {
+    parse_dat_file(path, "HECHIZO", "NOMBRE", strip_inline_comments)
 }
