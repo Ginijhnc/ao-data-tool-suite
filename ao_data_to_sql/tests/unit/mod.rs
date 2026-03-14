@@ -3,3 +3,4 @@
 //! Tests individual functions and modules in isolation.
 
 mod execution_tracking;
+mod server_ini;

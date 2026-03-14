@@ -25,32 +25,29 @@ pub async fn insert_characters_batch(
         return Ok(0);
     }
 
-    // Build multi-row VALUES clause: ($1, $2), ($3, $4), ...
+    // Build multi-row VALUES clause: ($1, $2, $3), ($4, $5, $6), ...
     let placeholders: Vec<String> = (0..characters.len())
         .map(|i| {
-            let p1 = i * 2 + 1;
-            let p2 = i * 2 + 2;
-            format!("(${p1}, ${p2})")
+            let p1 = i * 3 + 1;
+            let p2 = i * 3 + 2;
+            let p3 = i * 3 + 3;
+            format!("(${p1}, ${p2}, ${p3})")
         })
         .collect();
 
     let query = format!(
         r"
-        INSERT INTO characters (name, data)
+        INSERT INTO characters (name, data, is_gm)
         VALUES {}
-        ON CONFLICT (name) DO UPDATE SET data = EXCLUDED.data
+        ON CONFLICT (name) DO UPDATE SET data = EXCLUDED.data, is_gm = EXCLUDED.is_gm
         ",
         placeholders.join(", ")
     );
 
     let mut query_builder = sqlx::query(&query);
 
-    #[allow(
-        clippy::needless_borrowed_reference,
-        reason = "required by pattern_type_mismatch lint"
-    )]
-    for &(ref name, ref data) in characters {
-        query_builder = query_builder.bind(name).bind(data);
+    for &(ref name, ref data, is_gm) in characters {
+        query_builder = query_builder.bind(name).bind(data).bind(is_gm);
     }
 
     query_builder.execute(pool).await?;

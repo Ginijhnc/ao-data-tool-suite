@@ -8,7 +8,7 @@ use tempfile::TempDir;
 
 use crate::common::{
     DAKARA_CPP_FIXTURES, FIXTURES_DIR, crate_dir, setup_test_db,
-    with_test_db_env,
+    test_server_ini_path, with_test_db_env,
 };
 use crate::e2e::entity_configs::{
     BLACKSMITH_WEAPONS_FIXTURES, verify_blacksmith_weapon_count,
@@ -59,10 +59,14 @@ async fn incremental_update_detects_modified_blacksmith_weapon() {
 
     let temp_dats_dir = temp_dir.path();
 
+    let server_ini = test_server_ini_path();
+
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_ao_data_to_sql"));
     with_test_db_env(&mut cmd, host_port)
         .env("DATS_DIR", temp_dats_dir.to_str().unwrap())
         .env("CHARFILE_DIR", "/nonexistent")
+        .env("MAPS_DIR", "/nonexistent")
+        .env("SERVER_INI_PATH", server_ini.to_str().unwrap())
         .env("LAST_EXECUTION_FILE", last_exec_file.to_str().unwrap());
 
     let status = cmd.status().expect("failed to execute ao_data_to_sql");
@@ -91,6 +95,8 @@ async fn incremental_update_detects_modified_blacksmith_weapon() {
     with_test_db_env(&mut cmd2, host_port)
         .env("DATS_DIR", temp_dats_dir.to_str().unwrap())
         .env("CHARFILE_DIR", "/nonexistent")
+        .env("MAPS_DIR", "/nonexistent")
+        .env("SERVER_INI_PATH", server_ini.to_str().unwrap())
         .env("LAST_EXECUTION_FILE", last_exec_file.to_str().unwrap());
 
     let status2 = cmd2.status().expect("failed to execute ao_data_to_sql");
@@ -136,10 +142,14 @@ async fn incremental_update_detects_new_blacksmith_weapon() {
 
     let temp_dats_dir = temp_dir.path();
 
+    let server_ini = test_server_ini_path();
+
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_ao_data_to_sql"));
     with_test_db_env(&mut cmd, host_port)
         .env("DATS_DIR", temp_dats_dir.to_str().unwrap())
         .env("CHARFILE_DIR", "/nonexistent")
+        .env("MAPS_DIR", "/nonexistent")
+        .env("SERVER_INI_PATH", server_ini.to_str().unwrap())
         .env("LAST_EXECUTION_FILE", last_exec_file.to_str().unwrap());
 
     let status = cmd.status().expect("failed to execute ao_data_to_sql");
@@ -182,6 +192,8 @@ async fn incremental_update_detects_new_blacksmith_weapon() {
     with_test_db_env(&mut cmd2, host_port)
         .env("DATS_DIR", temp_dats_dir.to_str().unwrap())
         .env("CHARFILE_DIR", "/nonexistent")
+        .env("MAPS_DIR", "/nonexistent")
+        .env("SERVER_INI_PATH", server_ini.to_str().unwrap())
         .env("LAST_EXECUTION_FILE", last_exec_file.to_str().unwrap());
 
     let status2 = cmd2.status().expect("failed to execute ao_data_to_sql");

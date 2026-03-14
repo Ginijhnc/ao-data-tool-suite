@@ -4,7 +4,9 @@
 
 mod charfile;
 
+use core::hash::BuildHasher;
 use core::sync::atomic::{AtomicUsize, Ordering};
+use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
 use rayon::prelude::*;
@@ -18,12 +20,17 @@ pub use charfile::{
     CharfileError, CharfileParser, ParsedCharfile, discover_chr_files,
 };
 
-/// Character name paired with its parsed JSONB data.
-pub type CharacterData = (String, serde_json::Value);
+/// Character name paired with its parsed JSONB data and GM flag.
+pub type CharacterData = (String, serde_json::Value, bool);
 
 /// Parses charfiles in parallel, returning parsed data and error count.
+///
+/// Enriches each character with a GM flag by checking if their name appears in the provided Server.ini.
 #[must_use]
-pub fn parse_charfiles(chr_files: &[PathBuf]) -> (Vec<CharacterData>, usize) {
+pub fn parse_charfiles<S: BuildHasher + Sync>(
+    chr_files: &[PathBuf],
+    gm_names: &HashSet<String, S>,
+) -> (Vec<CharacterData>, usize) {
     let parser = CharfileParser::new();
     let error_count = AtomicUsize::new(0);
 
@@ -31,9 +38,10 @@ pub fn parse_charfiles(chr_files: &[PathBuf]) -> (Vec<CharacterData>, usize) {
         .par_iter()
         .filter_map(|path| try_parse_file(&parser, path, &error_count))
         .filter_map(|c| {
-            serde_json::to_value(&c.data)
-                .ok()
-                .map(|json| (c.name, json))
+            serde_json::to_value(&c.data).ok().map(|json| {
+                let is_gm = gm_names.contains(&c.name.to_uppercase());
+                (c.name, json, is_gm)
+            })
         })
         .collect();
 

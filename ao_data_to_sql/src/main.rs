@@ -48,6 +48,7 @@ use ao_data_to_sql::parsers::dat::maps::{discover_map_files, parse_map_file};
 use ao_data_to_sql::parsers::dat::npcs::parse_npcs_file;
 use ao_data_to_sql::parsers::dat::objects::parse_objects_file;
 use ao_data_to_sql::parsers::dat::spells::parse_spells_file;
+use ao_data_to_sql::parsers::server_ini::parse_gm_names;
 use ao_data_to_sql::profiling;
 
 /// CLI arguments for the import tool.
@@ -66,6 +67,10 @@ struct Args {
     /// Directory containing map .dat files (mapa1.dat, mapa2.dat, etc.).
     #[arg(long, env = "MAPS_DIR", default_value = "./Server/Maps")]
     maps_dir: PathBuf,
+
+    /// Path to Server.ini file for GM detection.
+    #[arg(long, env = "SERVER_INI_PATH")]
+    server_ini_path: PathBuf,
 
     /// Number of records per database batch insert.
     #[arg(short, long, env = "BATCH_SIZE", default_value = "100")]
@@ -234,8 +239,11 @@ async fn import_characters(
         return Ok(());
     }
 
+    let gm_names = parse_gm_names(&args.server_ini_path)
+        .context("Error procesando Server.ini")?;
+
     let parse_start = Instant::now();
-    let (char_data, parse_errors) = parse_charfiles(&chr_files);
+    let (char_data, parse_errors) = parse_charfiles(&chr_files, &gm_names);
     let parse_secs = parse_start.elapsed().as_secs_f64();
 
     let insert_start = Instant::now();

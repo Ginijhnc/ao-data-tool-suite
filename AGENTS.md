@@ -139,6 +139,14 @@ where
 - Use `#[instrument]` for automatic span creation
 - Configure log level via `RUST_LOG` environment variable
 
+## Test Fixture Organization
+
+Fixture paths use constants for all directory components, literals only for final filenames:
+- `FIXTURES_DIR` in `tests/common/mod.rs` - base directory (`"tests/fixtures"`)
+- Entity type constants in `tests/e2e/entity_configs.rs` - `CHARACTER_FIXTURES`, `SPELL_FIXTURES`, etc.
+- Server variant constants in `tests/common/mod.rs` - `DAKARA_CPP_FIXTURES`, `ALKON_VB6_FIXTURES`
+- Pattern: `.join(FIXTURES_DIR).join(ENTITY_CONST).join(VARIANT_CONST).join("filename.ext")`
+
 ## Dependency Injection
 
 Use constructor injection with `Arc` for shared state:
@@ -185,6 +193,7 @@ Use `//!` for module/crate docs and `///` for item docs (functions, structs, enu
 - Always include a commit body describing **what the change does and why it exists**, not how it is implemented
 - Do not reference function/file names or hard-coded values; keep the body implementation-agnostic and future-proof
 - The commit message should be a single continuous block with title and body together, separated by a blank line (do not separate them into different sections)
+- Wrap commit message body to **maximum 80 characters per line** for readability in terminals and git tools
 
 ### Scopes
 
