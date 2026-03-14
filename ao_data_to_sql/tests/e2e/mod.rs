@@ -4,6 +4,7 @@ mod blacksmith_weapons;
 mod carpenter;
 mod characters;
 mod dat;
+pub mod entity_configs;
 mod faction_armors;
 mod maps;
 mod npcs;

@@ -1,5 +1,3 @@
-mod helpers;
-
 use std::process::Command;
 
 use tempfile::TempDir;
@@ -8,7 +6,7 @@ use crate::common::{
     DAKARA_CPP_FIXTURES, FIXTURES_DIR, crate_dir, setup_test_db,
     with_test_db_env,
 };
-use helpers::{
+use crate::e2e::entity_configs::{
     NPC_FIXTURES, verify_npc_count, verify_npc_data_matches_fixture,
 };
 

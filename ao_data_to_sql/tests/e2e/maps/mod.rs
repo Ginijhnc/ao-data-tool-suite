@@ -2,8 +2,6 @@
 //!
 //! Tests verify map count, data integrity, and incremental update behavior.
 
-mod helpers;
-
 use std::fs;
 use std::process::Command;
 
@@ -13,7 +11,7 @@ use crate::common::{
     DAKARA_CPP_FIXTURES, FIXTURES_DIR, crate_dir, setup_test_db,
     with_test_db_env,
 };
-use helpers::{
+use crate::e2e::entity_configs::{
     MAP_FIXTURES, verify_map_count, verify_map_data_matches_fixture,
 };
 
