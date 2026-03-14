@@ -1,9 +1,7 @@
-mod helpers;
-
 use crate::common::{
     ALKON_VB6_FIXTURES, DAKARA_CPP_FIXTURES, FIXTURES_DIR, crate_dir,
 };
-use helpers::{
+use crate::e2e::entity_configs::{
     CHARACTER_FIXTURES, verify_character_count,
     verify_character_data_matches_fixture,
 };

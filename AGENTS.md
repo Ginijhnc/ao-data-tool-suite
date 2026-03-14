@@ -184,6 +184,7 @@ Use `//!` for module/crate docs and `///` for item docs (functions, structs, enu
 - Use **Conventional Commits** with a **mandatory scope**: `feat(scope):`, `fix(scope):`, `refactor(scope):`, `test(scope):`, `docs(scope):`, `chore(scope):`
 - Always include a commit body describing **what the change does and why it exists**, not how it is implemented
 - Do not reference function/file names or hard-coded values; keep the body implementation-agnostic and future-proof
+- The commit message should be a single continuous block with title and body together, separated by a blank line (do not separate them into different sections)
 
 ### Scopes
 

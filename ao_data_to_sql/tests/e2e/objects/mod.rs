@@ -1,5 +1,3 @@
-mod helpers;
-
 use std::process::Command;
 
 use tempfile::TempDir;
@@ -8,8 +6,9 @@ use crate::common::{
     DAKARA_CPP_FIXTURES, FIXTURES_DIR, crate_dir, setup_test_db,
     with_test_db_env,
 };
-use helpers::{
-    OBJ_FIXTURES, verify_object_count, verify_object_data_matches_fixture,
+use crate::e2e::entity_configs::{
+    OBJECT_FIXTURES as OBJ_FIXTURES, verify_object_count,
+    verify_object_data_matches_fixture,
 };
 
 /// Verifies the number of objects in the database matches expected count.

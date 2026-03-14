@@ -2,8 +2,6 @@
 //!
 //! Tests verify faction armor count, data integrity, and incremental update behavior.
 
-mod helpers;
-
 use std::process::Command;
 
 use tempfile::TempDir;
@@ -12,7 +10,7 @@ use crate::common::{
     DAKARA_CPP_FIXTURES, FIXTURES_DIR, crate_dir, setup_test_db,
     with_test_db_env,
 };
-use helpers::{
+use crate::e2e::entity_configs::{
     FACTION_ARMORS_FIXTURES, verify_faction_armor_count,
     verify_faction_armor_data_matches_fixture,
 };
