@@ -4,7 +4,7 @@ use tempfile::TempDir;
 
 use crate::common::{
     DAKARA_CPP_FIXTURES, FIXTURES_DIR, crate_dir, setup_test_db,
-    with_test_db_env,
+    test_server_ini_path, with_test_db_env,
 };
 use crate::e2e::entity_configs::{
     NPC_FIXTURES, verify_npc_count, verify_npc_data_matches_fixture,
@@ -77,6 +77,7 @@ async fn npc_61_preserves_inline_comments_when_disabled() {
         .env("DATS_DIR", temp_dats_dir.to_str().unwrap())
         .env("STRIP_DAT_INLINE_COMMENTS", "false")
         .env("CHARFILE_DIR", "/nonexistent")
+        .env("SERVER_INI_PATH", test_server_ini_path().to_str().unwrap())
         .env("LAST_EXECUTION_FILE", last_exec_file.to_str().unwrap());
 
     let status = cmd.status().expect("failed to execute ao_data_to_sql");
@@ -126,6 +127,7 @@ async fn npc_517_preserves_inline_comments_when_disabled() {
         .env("DATS_DIR", temp_dats_dir.to_str().unwrap())
         .env("STRIP_DAT_INLINE_COMMENTS", "false")
         .env("CHARFILE_DIR", "/nonexistent")
+        .env("SERVER_INI_PATH", test_server_ini_path().to_str().unwrap())
         .env("LAST_EXECUTION_FILE", last_exec_file.to_str().unwrap());
 
     let status = cmd.status().expect("failed to execute ao_data_to_sql");

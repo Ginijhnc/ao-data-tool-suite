@@ -44,6 +44,9 @@ pub const BLACKSMITH_ARMORS_FIXTURES: &str = "blacksmith_armors";
 /// Fixture subdirectory for faction armors.
 pub const FACTION_ARMORS_FIXTURES: &str = "faction_armors";
 
+/// Fixture subdirectory for Server.ini files.
+pub const SERVER_INI_FIXTURES: &str = "server_ini";
+
 // ============================================================================
 // Entity Configurations
 // ============================================================================

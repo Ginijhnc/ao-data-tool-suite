@@ -9,7 +9,7 @@ use tempfile::TempDir;
 
 use crate::common::{
     DAKARA_CPP_FIXTURES, FIXTURES_DIR, crate_dir, setup_test_db,
-    with_test_db_env,
+    test_server_ini_path, with_test_db_env,
 };
 use crate::e2e::entity_configs::{
     MAP_FIXTURES, verify_map_count, verify_map_data_matches_fixture,
@@ -74,6 +74,7 @@ async fn incremental_update_detects_modified_map() {
         .env("MAPS_DIR", temp_maps_dir.to_str().unwrap())
         .env("DATS_DIR", "/nonexistent")
         .env("CHARFILE_DIR", "/nonexistent")
+        .env("SERVER_INI_PATH", test_server_ini_path().to_str().unwrap())
         .env("LAST_EXECUTION_FILE", last_exec_file.to_str().unwrap());
 
     let status = cmd.status().expect("failed to execute ao_data_to_sql");
@@ -109,6 +110,7 @@ async fn incremental_update_detects_modified_map() {
         .env("MAPS_DIR", temp_maps_dir.to_str().unwrap())
         .env("DATS_DIR", "/nonexistent")
         .env("CHARFILE_DIR", "/nonexistent")
+        .env("SERVER_INI_PATH", test_server_ini_path().to_str().unwrap())
         .env("LAST_EXECUTION_FILE", last_exec_file.to_str().unwrap());
 
     let status2 = cmd2.status().expect("failed to execute second run");
@@ -147,6 +149,7 @@ async fn parser_ignores_non_map_files() {
         .env("MAPS_DIR", temp_maps_dir.to_str().unwrap())
         .env("DATS_DIR", "/nonexistent")
         .env("CHARFILE_DIR", "/nonexistent")
+        .env("SERVER_INI_PATH", test_server_ini_path().to_str().unwrap())
         .env("LAST_EXECUTION_FILE", last_exec_file.to_str().unwrap());
 
     let status = cmd.status().expect("failed to execute ao_data_to_sql");

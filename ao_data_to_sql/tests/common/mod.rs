@@ -8,6 +8,8 @@ use testcontainers::ContainerAsync;
 use testcontainers::runners::AsyncRunner;
 use testcontainers_modules::postgres::Postgres;
 
+use crate::e2e::entity_configs::SERVER_INI_FIXTURES;
+
 /// Base path for all test fixtures
 pub const FIXTURES_DIR: &str = "tests/fixtures";
 
@@ -44,16 +46,20 @@ pub enum SourceDir {
 impl EntityTestConfig {
     /// Configures the command with the appropriate source directory environment variables.
     fn configure_source_dir(&self, cmd: &mut Command) {
+        let server_ini = test_server_ini_path();
+
         match self.source_dir {
             SourceDir::Dats => {
                 let dats_dir = crate_dir().join("dat");
                 cmd.env("DATS_DIR", dats_dir.to_str().unwrap())
                     .env("CHARFILE_DIR", "/nonexistent")
-                    .env("MAPS_DIR", "/nonexistent");
+                    .env("MAPS_DIR", "/nonexistent")
+                    .env("SERVER_INI_PATH", server_ini.to_str().unwrap());
             }
             SourceDir::Charfile => {
                 let charfile_dir = crate_dir().join("Charfile");
                 cmd.env("CHARFILE_DIR", charfile_dir.to_str().unwrap())
+                    .env("SERVER_INI_PATH", server_ini.to_str().unwrap())
                     .env("DATS_DIR", "/nonexistent")
                     .env("MAPS_DIR", "/nonexistent");
             }
@@ -61,7 +67,8 @@ impl EntityTestConfig {
                 let maps_dir = crate_dir().join("Maps");
                 cmd.env("MAPS_DIR", maps_dir.to_str().unwrap())
                     .env("DATS_DIR", "/nonexistent")
-                    .env("CHARFILE_DIR", "/nonexistent");
+                    .env("CHARFILE_DIR", "/nonexistent")
+                    .env("SERVER_INI_PATH", server_ini.to_str().unwrap());
             }
         }
     }
@@ -191,4 +198,13 @@ pub fn with_test_db_env(cmd: &mut Command, host_port: u16) -> &mut Command {
         .env("DB_NAME", "postgres")
         .env("DB_USER", "postgres")
         .env("DB_PASSWORD", "postgres")
+}
+
+/// Returns the path to the test Server.ini fixture.
+pub fn test_server_ini_path() -> PathBuf {
+    crate_dir()
+        .join(FIXTURES_DIR)
+        .join(SERVER_INI_FIXTURES)
+        .join(ALKON_VB6_FIXTURES)
+        .join("Server.ini")
 }
