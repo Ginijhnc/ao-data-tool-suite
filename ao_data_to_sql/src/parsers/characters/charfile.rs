@@ -105,7 +105,7 @@ impl CharfileParser {
             })?
             .to_owned();
 
-        let mut data = parse_ini_bytes(&bytes)?;
+        let mut data = parse_ini_bytes(&bytes, false)?;
 
         for section_name in &self.skip_sections {
             data.remove(section_name);

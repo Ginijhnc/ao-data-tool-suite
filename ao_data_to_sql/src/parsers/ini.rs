@@ -56,7 +56,13 @@ pub type IniSection = HashMap<String, String>;
 pub type IniData = HashMap<String, IniSection>;
 
 /// Parses raw bytes as INI, detecting encoding automatically.
-pub fn parse_ini_bytes(bytes: &[u8]) -> Result<IniData, IniParseError> {
+///
+/// If `strip_inline_comments` is true, removes text after ' from key-value pairs.
+/// Section header comments are always preserved.
+pub fn parse_ini_bytes(
+    bytes: &[u8],
+    strip_inline_comments: bool,
+) -> Result<IniData, IniParseError> {
     let content = if let Ok(s) = core::str::from_utf8(bytes) {
         s.to_owned()
     } else {
@@ -67,11 +73,11 @@ pub fn parse_ini_bytes(bytes: &[u8]) -> Result<IniData, IniParseError> {
         decoded.into_owned()
     };
 
-    Ok(parse_ini_string(&content))
+    Ok(parse_ini_string(&content, strip_inline_comments))
 }
 
 /// Parses an INI string into sections and key-value pairs.
-fn parse_ini_string(content: &str) -> IniData {
+fn parse_ini_string(content: &str, strip_inline_comments: bool) -> IniData {
     let mut data: IniData = HashMap::new();
     let mut current_section: Option<String> = None;
 
@@ -91,6 +97,7 @@ fn parse_ini_string(content: &str) -> IniData {
         {
             current_section = Some(section_name.clone());
             let section_data = data.entry(section_name).or_default();
+            // Always preserve section header comments in _COMMENT field
             if let Some(c) = comment {
                 section_data.insert("_COMMENT".to_owned(), c);
             }
@@ -99,7 +106,13 @@ fn parse_ini_string(content: &str) -> IniData {
 
         if let Some(eq_pos) = trimmed.find('=') {
             let key = trimmed[..eq_pos].trim().to_uppercase();
-            let value = trimmed[eq_pos + 1..].trim().to_owned();
+            let raw_value = trimmed[eq_pos + 1..].trim();
+
+            let value = if strip_inline_comments {
+                strip_inline_comment(raw_value)
+            } else {
+                raw_value.to_owned()
+            };
 
             if let Some(ref section) = current_section
                 && let Some(section_data) = data.get_mut(section)
@@ -132,6 +145,18 @@ fn parse_section_header(line: &str) -> Option<(String, Option<String>)> {
     Some((section_name, comment))
 }
 
+/// Strips inline comments (text after ') from a value string.
+///
+/// Returns the value with comments removed and whitespace trimmed.
+/// If the value contains no comment marker, returns the original trimmed value.
+#[must_use]
+fn strip_inline_comment(value: &str) -> String {
+    value.find('\'').map_or_else(
+        || value.trim().to_owned(),
+        |comment_pos| value[..comment_pos].trim().to_owned(),
+    )
+}
+
 /// Extracts numeric ID from section name by stripping the given prefix.
 ///
 /// For example, `extract_section_id("NPC34", "NPC")` returns `Some(34)`.
@@ -145,13 +170,16 @@ pub fn extract_section_id(section: &str, prefix: &str) -> Option<i32> {
 /// The `section_prefix` determines which sections to extract (e.g., `"NPC"`, `"OBJ"`).
 /// The `name_field` specifies which field contains the entry name (e.g., `"NAME"`, `"Nombre"`).
 /// Pass an empty string for `name_field` if entries have no name field.
+/// If `strip_inline_comments` is true, removes text after ' from key-value pairs.
+/// Section header comments are always preserved.
 pub fn parse_dat_file(
     path: &Path,
     section_prefix: &str,
     name_field: &str,
+    strip_inline_comments: bool,
 ) -> DatParseResult<Vec<ParsedDatEntry>> {
     let bytes = std::fs::read(path)?;
-    let ini_data = parse_ini_bytes(&bytes)?;
+    let ini_data = parse_ini_bytes(&bytes, strip_inline_comments)?;
 
     let mut entries = Vec::new();
 

@@ -34,10 +34,13 @@ pub struct ParsedMap {
 ///
 /// Extracts map ID from filename and consolidates SONIDO sections into
 /// a nested SONIDOS array within the main map object.
-pub fn parse_map_file(path: &Path) -> Result<ParsedMap> {
+pub fn parse_map_file(
+    path: &Path,
+    strip_inline_comments: bool,
+) -> Result<ParsedMap> {
     let id = extract_map_id(path)?;
     let bytes = std::fs::read(path)?;
-    let ini_data = parse_ini_bytes(&bytes)?;
+    let ini_data = parse_ini_bytes(&bytes, strip_inline_comments)?;
 
     // Find the MAPA* section key
     #[allow(

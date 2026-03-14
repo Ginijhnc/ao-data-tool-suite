@@ -51,6 +51,104 @@ async fn npc_517_djinn_hostile_npc_data_matches_expected_fixture() {
     verify_npc_data_matches_fixture(517, fixture).await;
 }
 
+/// Verifies NPC61 with `STRIP_DAT_INLINE_COMMENTS=false` preserves comments
+#[tokio::test]
+async fn npc_61_preserves_inline_comments_when_disabled() {
+    let fixture = crate_dir()
+        .join(FIXTURES_DIR)
+        .join(NPC_FIXTURES)
+        .join(DAKARA_CPP_FIXTURES)
+        .join("NPC61_with_comments.json");
+
+    let (container, pool) = setup_test_db().await;
+    let host_port = container.get_host_port_ipv4(5432).await.unwrap();
+
+    let temp_dir = TempDir::new().expect("failed to create temp dir");
+    let last_exec_file = temp_dir.path().join("last_execution");
+    let temp_npcs_dat = temp_dir.path().join("NPCs.dat");
+
+    // Copy original NPCs.dat to temp location
+    let original_npcs = crate_dir().join("dat").join("NPCs.dat");
+    std::fs::copy(&original_npcs, &temp_npcs_dat)
+        .expect("failed to copy NPCs.dat");
+
+    let temp_dats_dir = temp_dir.path();
+
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_ao_data_to_sql"));
+    with_test_db_env(&mut cmd, host_port)
+        .env("DATS_DIR", temp_dats_dir.to_str().unwrap())
+        .env("STRIP_DAT_INLINE_COMMENTS", "false")
+        .env("CHARFILE_DIR", "/nonexistent")
+        .env("LAST_EXECUTION_FILE", last_exec_file.to_str().unwrap());
+
+    let status = cmd.status().expect("failed to execute ao_data_to_sql");
+    assert!(status.success(), "import failed");
+
+    let (data,): (serde_json::Value,) =
+        sqlx::query_as("SELECT data FROM npcs WHERE id = 61")
+            .fetch_one(&pool)
+            .await
+            .expect("failed to fetch NPC61");
+
+    let expected: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(&fixture).unwrap())
+            .expect("failed to parse fixture");
+
+    assert_eq!(
+        data, expected,
+        "NPC 61 data does not match fixture with comments preserved"
+    );
+}
+
+/// Verifies NPC517 with `STRIP_DAT_INLINE_COMMENTS=false` preserves comments
+#[tokio::test]
+async fn npc_517_preserves_inline_comments_when_disabled() {
+    let fixture = crate_dir()
+        .join(FIXTURES_DIR)
+        .join(NPC_FIXTURES)
+        .join(DAKARA_CPP_FIXTURES)
+        .join("NPC517_with_comments.json");
+
+    let (container, pool) = setup_test_db().await;
+    let host_port = container.get_host_port_ipv4(5432).await.unwrap();
+
+    let temp_dir = TempDir::new().expect("failed to create temp dir");
+    let last_exec_file = temp_dir.path().join("last_execution");
+    let temp_npcs_dat = temp_dir.path().join("NPCs.dat");
+
+    // Copy original NPCs.dat to temp location
+    let original_npcs = crate_dir().join("dat").join("NPCs.dat");
+    std::fs::copy(&original_npcs, &temp_npcs_dat)
+        .expect("failed to copy NPCs.dat");
+
+    let temp_dats_dir = temp_dir.path();
+
+    let mut cmd = Command::new(env!("CARGO_BIN_EXE_ao_data_to_sql"));
+    with_test_db_env(&mut cmd, host_port)
+        .env("DATS_DIR", temp_dats_dir.to_str().unwrap())
+        .env("STRIP_DAT_INLINE_COMMENTS", "false")
+        .env("CHARFILE_DIR", "/nonexistent")
+        .env("LAST_EXECUTION_FILE", last_exec_file.to_str().unwrap());
+
+    let status = cmd.status().expect("failed to execute ao_data_to_sql");
+    assert!(status.success(), "import failed");
+
+    let (data,): (serde_json::Value,) =
+        sqlx::query_as("SELECT data FROM npcs WHERE id = 517")
+            .fetch_one(&pool)
+            .await
+            .expect("failed to fetch NPC517");
+
+    let expected: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(&fixture).unwrap())
+            .expect("failed to parse fixture");
+
+    assert_eq!(
+        data, expected,
+        "NPC 517 data does not match fixture with comments preserved"
+    );
+}
+
 /// Verifies incremental update: parser detects modified NPCs.dat and updates existing NPC
 #[tokio::test]
 async fn incremental_update_detects_modified_npc() {

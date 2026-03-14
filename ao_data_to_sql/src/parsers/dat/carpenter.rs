@@ -23,8 +23,9 @@ pub type ParsedCarpenterObject = ParsedDatEntry;
 /// Renames the `INDEX` field to `OBJ_INDEX` for clarity when stored in the database.
 pub fn parse_carpenter_file(
     path: &Path,
+    strip_inline_comments: bool,
 ) -> Result<Vec<ParsedCarpenterObject>> {
-    let mut entries = parse_dat_file(path, "OBJ", "")?;
+    let mut entries = parse_dat_file(path, "OBJ", "", strip_inline_comments)?;
 
     for entry in &mut entries {
         if let Some(index_value) = entry.data.remove("INDEX") {
