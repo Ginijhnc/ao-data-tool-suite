@@ -9,7 +9,8 @@ use std::path::Path;
 use serde_json::{Map, Value};
 
 use crate::parsers::ini::{
-    DatParseError, DatParseResult, IniData, IniSection, parse_ini_bytes,
+    DatParseError, DatParseResult, IniData, IniSection, coerce_ini_section,
+    parse_ini_bytes,
 };
 
 /// Map parsing errors.
@@ -77,10 +78,9 @@ fn consolidate_map_sections(
 
     if let Some(k) = map_key
         && let Some(section) = ini_data.get(k)
+        && let Value::Object(coerced) = coerce_ini_section(section.clone())
     {
-        for (key, value) in section {
-            map_obj.insert(key.clone(), Value::String(value.clone()));
-        }
+        map_obj.extend(coerced);
     }
 
     // Collect SONIDO{n} sections (exclude SONIDOS metadata), sorted by number
@@ -101,13 +101,7 @@ fn consolidate_map_sections(
     if !sounds.is_empty() {
         let sound_array: Vec<Value> = sounds
             .into_iter()
-            .map(|(_, section)| {
-                let obj: Map<String, Value> = section
-                    .iter()
-                    .map(|(k, v)| (k.clone(), Value::String(v.clone())))
-                    .collect();
-                Value::Object(obj)
-            })
+            .map(|(_, section)| coerce_ini_section(section.clone()))
             .collect();
         map_obj.insert("SONIDOS".to_owned(), Value::Array(sound_array));
     }

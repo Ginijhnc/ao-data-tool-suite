@@ -6,6 +6,7 @@ use sqlx::PgPool;
 use tracing::error;
 
 use crate::parsers::dat::npcs::ParsedNpc;
+use crate::parsers::ini::coerce_ini_section;
 
 /// NPC data ready for database insertion: (id, name, `json_data`).
 pub type NpcData = (i32, String, serde_json::Value);
@@ -58,10 +59,9 @@ pub async fn insert_npcs_batch(
 #[must_use]
 pub fn prepare_npc_data(npcs: Vec<ParsedNpc>) -> Vec<NpcData> {
     npcs.into_iter()
-        .filter_map(|npc| {
-            serde_json::to_value(&npc.data)
-                .ok()
-                .map(|json| (npc.id, npc.name, json))
+        .map(|npc| {
+            let json = coerce_ini_section(npc.data);
+            (npc.id, npc.name, json)
         })
         .collect()
 }

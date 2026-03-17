@@ -99,12 +99,9 @@ async fn incremental_update_detects_new_carpenter_object() {
 
                 let index = obj_data
                     .get("OBJ_INDEX")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("");
-                assert_eq!(
-                    index, "999",
-                    "OBJ35 should have correct OBJ_INDEX"
-                );
+                    .and_then(serde_json::Value::as_i64)
+                    .unwrap_or(0);
+                assert_eq!(index, 999, "OBJ35 should have correct OBJ_INDEX");
             })
         },
     )
