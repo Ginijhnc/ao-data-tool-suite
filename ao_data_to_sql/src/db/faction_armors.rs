@@ -6,6 +6,7 @@ use sqlx::PgPool;
 use tracing::error;
 
 use crate::parsers::dat::faction_armors::ParsedFactionArmor;
+use crate::parsers::ini::coerce_ini_section;
 
 /// Faction armor data ready for database insertion: (id, `json_data`).
 pub type FactionArmorData = (i32, serde_json::Value);
@@ -59,10 +60,9 @@ pub fn prepare_faction_armor_data(
 ) -> Vec<FactionArmorData> {
     armors
         .into_iter()
-        .filter_map(|armor| {
-            serde_json::to_value(&armor.data)
-                .ok()
-                .map(|json| (armor.id, json))
+        .map(|armor| {
+            let json = coerce_ini_section(armor.data);
+            (armor.id, json)
         })
         .collect()
 }

@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 use rayon::prelude::*;
 use tracing::error;
 
+use crate::parsers::ini::coerce_ini_data;
 #[allow(
     unused_imports,
     reason = "CharfileError re-exported for public API"
@@ -37,11 +38,10 @@ pub fn parse_charfiles<S: BuildHasher + Sync>(
     let char_data: Vec<CharacterData> = chr_files
         .par_iter()
         .filter_map(|path| try_parse_file(&parser, path, &error_count))
-        .filter_map(|c| {
-            serde_json::to_value(&c.data).ok().map(|json| {
-                let is_gm = gm_names.contains(&c.name.to_uppercase());
-                (c.name, json, is_gm)
-            })
+        .map(|c| {
+            let json = coerce_ini_data(c.data);
+            let is_gm = gm_names.contains(&c.name.to_uppercase());
+            (c.name, json, is_gm)
         })
         .collect();
 

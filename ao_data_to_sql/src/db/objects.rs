@@ -6,6 +6,7 @@ use sqlx::PgPool;
 use tracing::error;
 
 use crate::parsers::dat::objects::ParsedObject;
+use crate::parsers::ini::coerce_ini_section;
 
 /// Object data ready for database insertion: (id, name, `json_data`).
 pub type ObjectData = (i32, String, serde_json::Value);
@@ -59,10 +60,9 @@ pub async fn insert_objects_batch(
 pub fn prepare_object_data(objects: Vec<ParsedObject>) -> Vec<ObjectData> {
     objects
         .into_iter()
-        .filter_map(|obj| {
-            serde_json::to_value(&obj.data)
-                .ok()
-                .map(|json| (obj.id, obj.name, json))
+        .map(|obj| {
+            let json = coerce_ini_section(obj.data);
+            (obj.id, obj.name, json)
         })
         .collect()
 }

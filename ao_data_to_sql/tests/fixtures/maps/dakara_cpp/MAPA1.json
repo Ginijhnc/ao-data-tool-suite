@@ -1,13 +1,13 @@
 {
-  "MAPA1": {
-    "PK": "1",
-    "NAME": "Ciudad de Ullathorpe",
-    "ZONA": "CIUDAD",
-    "BACKUP": "1",
-    "TERRENO": "BOSQUE",
-    "MUSICNUM": "4",
-    "RESTRINGIR": "No",
-    "NOENCRIPTARMP": "0",
-    "MAGIASINEFECTO": "0"
-  }
+    "MAPA1": {
+        "PK": 1,
+        "NAME": "Ciudad de Ullathorpe",
+        "ZONA": "CIUDAD",
+        "BACKUP": 1,
+        "TERRENO": "BOSQUE",
+        "MUSICNUM": 4,
+        "RESTRINGIR": "No",
+        "NOENCRIPTARMP": 0,
+        "MAGIASINEFECTO": 0
+    }
 }

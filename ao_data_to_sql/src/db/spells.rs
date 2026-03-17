@@ -6,6 +6,7 @@ use sqlx::PgPool;
 use tracing::error;
 
 use crate::parsers::dat::spells::ParsedSpell;
+use crate::parsers::ini::coerce_ini_section;
 
 /// Spell data ready for database insertion: (id, name, `json_data`).
 pub type SpellData = (i32, String, serde_json::Value);
@@ -59,10 +60,9 @@ pub async fn insert_spells_batch(
 pub fn prepare_spell_data(spells: Vec<ParsedSpell>) -> Vec<SpellData> {
     spells
         .into_iter()
-        .filter_map(|spell| {
-            serde_json::to_value(&spell.data)
-                .ok()
-                .map(|json| (spell.id, spell.name, json))
+        .map(|spell| {
+            let json = coerce_ini_section(spell.data);
+            (spell.id, spell.name, json)
         })
         .collect()
 }

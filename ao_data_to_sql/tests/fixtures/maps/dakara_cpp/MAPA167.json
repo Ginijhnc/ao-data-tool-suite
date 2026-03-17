@@ -1,14 +1,14 @@
 {
-  "MAPA167": {
-    "PK": "1",
-    "NAME": "Dungeon Newbie.",
-    "ZONA": "DUNGEON",
-    "BACKUP": "1",
-    "TERRENO": "BOSQUE",
-    "MUSICNUM": "7",
-    "RESTRINGIR": "NEWBIE",
-    "INVISINEFECTO": "0",
-    "RESUSINEFECTO": "0",
-    "MAGIASINEFECTO": "0"
-  }
+    "MAPA167": {
+        "PK": 1,
+        "NAME": "Dungeon Newbie.",
+        "ZONA": "DUNGEON",
+        "BACKUP": 1,
+        "TERRENO": "BOSQUE",
+        "MUSICNUM": 7,
+        "RESTRINGIR": "NEWBIE",
+        "INVISINEFECTO": 0,
+        "RESUSINEFECTO": 0,
+        "MAGIASINEFECTO": 0
+    }
 }

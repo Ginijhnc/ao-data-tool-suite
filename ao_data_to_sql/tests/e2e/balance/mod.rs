@@ -122,11 +122,11 @@ async fn incremental_update_detects_new_balance_section() {
 
                 let guerrero = section_data
                     .get("GUERRERO")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("");
-                assert_eq!(
-                    guerrero, "1.05",
-                    "MODREGENERACION should have correct GUERRERO value"
+                    .and_then(serde_json::Value::as_f64)
+                    .unwrap_or(0.0);
+                assert!(
+                    (guerrero - 1.05).abs() < 1e-9,
+                    "MODREGENERACION should have correct GUERRERO value, got {guerrero}"
                 );
 
                 let comment = section_data

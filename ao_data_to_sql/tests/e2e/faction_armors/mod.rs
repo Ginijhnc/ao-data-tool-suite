@@ -98,9 +98,9 @@ async fn incremental_update_detects_new_faction_armor() {
 
                 let def_min = armor_data
                     .get("DEFMINARMYALTO")
-                    .and_then(|v| v.as_str())
-                    .unwrap_or("");
-                assert_eq!(def_min, "675", "CLASE13 should have correct DEFMINARMYALTO");
+                    .and_then(serde_json::Value::as_i64)
+                    .unwrap_or(0);
+                assert_eq!(def_min, 675, "CLASE13 should have correct DEFMINARMYALTO");
 
                 assert!(
                     armor_data.get("_COMMENT").is_none(),

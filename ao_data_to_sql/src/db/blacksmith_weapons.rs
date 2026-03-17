@@ -6,6 +6,7 @@ use sqlx::PgPool;
 use tracing::error;
 
 use crate::parsers::dat::blacksmith_weapons::ParsedBlacksmithWeapon;
+use crate::parsers::ini::coerce_ini_section;
 
 /// Blacksmith weapon data ready for database insertion: (id, `json_data`).
 pub type BlacksmithWeaponData = (i32, serde_json::Value);
@@ -59,10 +60,9 @@ pub fn prepare_blacksmith_weapon_data(
 ) -> Vec<BlacksmithWeaponData> {
     weapons
         .into_iter()
-        .filter_map(|weapon| {
-            serde_json::to_value(&weapon.data)
-                .ok()
-                .map(|json| (weapon.id, json))
+        .map(|weapon| {
+            let json = coerce_ini_section(weapon.data);
+            (weapon.id, json)
         })
         .collect()
 }

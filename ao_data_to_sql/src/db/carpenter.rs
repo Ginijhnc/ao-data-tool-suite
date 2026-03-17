@@ -6,6 +6,7 @@ use sqlx::PgPool;
 use tracing::error;
 
 use crate::parsers::dat::carpenter::ParsedCarpenterObject;
+use crate::parsers::ini::coerce_ini_section;
 
 /// Carpenter object data ready for database insertion: (id, `json_data`).
 pub type CarpenterObjectData = (i32, serde_json::Value);
@@ -59,10 +60,9 @@ pub fn prepare_carpenter_object_data(
 ) -> Vec<CarpenterObjectData> {
     objects
         .into_iter()
-        .filter_map(|obj| {
-            serde_json::to_value(&obj.data)
-                .ok()
-                .map(|json| (obj.id, json))
+        .map(|obj| {
+            let json = coerce_ini_section(obj.data);
+            (obj.id, json)
         })
         .collect()
 }

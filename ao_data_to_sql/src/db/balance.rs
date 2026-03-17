@@ -6,6 +6,7 @@ use sqlx::PgPool;
 use tracing::error;
 
 use crate::parsers::dat::balance::ParsedBalanceSection;
+use crate::parsers::ini::coerce_ini_section;
 
 /// Balance data ready for database insertion: (`section_name`, `json_data`).
 pub type BalanceData = (String, serde_json::Value);
@@ -55,10 +56,9 @@ pub fn prepare_balance_data(
 ) -> Vec<BalanceData> {
     sections
         .into_iter()
-        .filter_map(|s| {
-            serde_json::to_value(&s.data)
-                .ok()
-                .map(|json| (s.section, json))
+        .map(|s| {
+            let json = coerce_ini_section(s.data);
+            (s.section, json)
         })
         .collect()
 }

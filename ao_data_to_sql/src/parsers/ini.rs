@@ -165,6 +165,46 @@ pub fn extract_section_id(section: &str, prefix: &str) -> Option<i32> {
     section.strip_prefix(prefix).and_then(|n| n.parse().ok())
 }
 
+/// Converts an INI section into a JSON object, coercing values to their
+/// most specific type (integer, float, or string).
+///
+/// Keys starting with `_` (e.g., `_COMMENT`) are always kept as strings.
+#[must_use]
+pub fn coerce_ini_section(section: IniSection) -> serde_json::Value {
+    let map: serde_json::Map<String, serde_json::Value> = section
+        .into_iter()
+        .map(|(key, value)| {
+            let json_value = if key.starts_with('_') {
+                serde_json::Value::String(value)
+            } else if let Ok(n) = value.parse::<i64>() {
+                serde_json::Value::Number(n.into())
+            } else if let Ok(f) = value.parse::<f64>() {
+                serde_json::Value::Number(
+                    serde_json::Number::from_f64(f)
+                        .unwrap_or_else(|| 0_i64.into()),
+                )
+            } else {
+                serde_json::Value::String(value)
+            };
+            (key, json_value)
+        })
+        .collect();
+    serde_json::Value::Object(map)
+}
+
+/// Converts `IniData` (nested sections) into a JSON object, coercing all
+/// leaf values to their most specific type.
+#[must_use]
+pub fn coerce_ini_data(data: IniData) -> serde_json::Value {
+    let map: serde_json::Map<String, serde_json::Value> = data
+        .into_iter()
+        .map(|(section_name, section)| {
+            (section_name, coerce_ini_section(section))
+        })
+        .collect();
+    serde_json::Value::Object(map)
+}
+
 /// Parses a DAT file into individual entries.
 ///
 /// The `section_prefix` determines which sections to extract (e.g., `"NPC"`, `"OBJ"`).
