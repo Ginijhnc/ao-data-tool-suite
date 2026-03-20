@@ -4,5 +4,6 @@
 
 pub mod db;
 pub mod execution_tracking;
+pub mod importers;
 pub mod parsers;
 pub mod profiling;
