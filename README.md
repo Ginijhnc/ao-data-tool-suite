@@ -26,7 +26,7 @@ This is a Rust workspace with multiple crates. If you're familiar with npm/pnpm 
 ```
 ao-data-tool-suite/
 ├── ao_data_to_sql/          # Imports game data files → PostgreSQL
-├── ao_sql_to_static_files/  # Exports PostgreSQL → JSON (future)
+├── ao_sql_to_static_files/  # Exports PostgreSQL → static JSON files
 └── ao_shared/               # Shared utilities (DB connection, etc.)
 ```
 

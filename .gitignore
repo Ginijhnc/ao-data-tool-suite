@@ -21,3 +21,4 @@ last_execution
 Charfile_load_testing
 .claude/commands/*
 ao_data_to_sql/Maps_load_testing/*
+ao_sql_to_static_files/exported-json/

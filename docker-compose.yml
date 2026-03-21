@@ -19,6 +19,20 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
+  json-gen:
+    build:
+      context: .
+      dockerfile: ao_sql_to_static_files/Dockerfile
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=host.docker.internal
+      - STATIC_JSON_OUTPUT_DIR=/data/exported-json
+    volumes:
+      - ${STATIC_JSON_OUTPUT_DIR:-./ao_sql_to_static_files/exported-json}:/data/exported-json
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
   test:
     build:
       context: .
