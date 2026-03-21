@@ -1,0 +1,28 @@
+[package]
+name = "ao_sql_to_static_files"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Exports Argentum Online data from PostgreSQL to static JSON files and uploads them to a CDN"
+
+[[bin]]
+name = "ao_sql_to_static_files"
+path = "src/main.rs"
+
+[dependencies]
+ao_shared = { path = "../ao_shared" }
+tokio.workspace = true
+sqlx.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+clap.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+dotenvy.workspace = true
+anyhow.workspace = true
+chrono.workspace = true
+
+[lints]
+workspace = true
