@@ -16,7 +16,7 @@ description = "Tools for managing Argentum Online game data"
 
 [workspace.dependencies]
 tokio = { version = "1.49.0", features = ["full"] }
-sqlx = { version = "0.8.6", features = ["runtime-tokio", "postgres", "json", "migrate"] }
+sqlx = { version = "0.8.6", features = ["runtime-tokio", "postgres", "json", "migrate", "chrono"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 encoding_rs = "0.8.35"
@@ -31,6 +31,7 @@ chrono = { version = "0.4.44", features = ["serde"] }
 aws-sdk-s3 = "1.127.0"
 aws-config = "1.8.15"
 aws-credential-types = "1.2.14"
+sha2 = "0.10.9"
 testcontainers = "0.27.2"
 testcontainers-modules = { version = "0.15.0", features = ["postgres"] }
 pretty_assertions = "1.4.1"

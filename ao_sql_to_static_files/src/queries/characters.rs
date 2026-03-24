@@ -9,7 +9,7 @@ use sqlx::PgPool;
 /// Character data extracted from the database.
 ///
 /// Contains all fields needed for frontend display.
-#[derive(Debug, Serialize, sqlx::FromRow)]
+#[derive(Debug, Clone, Serialize, sqlx::FromRow)]
 #[non_exhaustive]
 pub struct RankedCharacter {
     pub name: String,
@@ -23,7 +23,7 @@ pub struct RankedCharacter {
 
 /// Fetches the top characters ranked by level.
 ///
-/// Returns characters ordered by level descending, with experience as tiebreaker.
+/// Returns characters ordered by level descending, with experience and name as tiebreakers.
 pub async fn fetch_top_level(
     pool: &PgPool,
     limit: i32,
@@ -40,7 +40,7 @@ pub async fn fetch_top_level(
             COALESCE((data->'STATS'->>'GLD')::bigint, 0) AS gold
         FROM characters
         WHERE is_gm = FALSE
-        ORDER BY level DESC, exp DESC
+        ORDER BY level DESC, exp DESC, name ASC
         LIMIT $1
         ",
     )
@@ -52,7 +52,7 @@ pub async fn fetch_top_level(
 
 /// Fetches the top characters ranked by `PvP` kills.
 ///
-/// Returns characters ordered by user kills descending.
+/// Returns characters ordered by user kills descending, with name as tiebreaker.
 pub async fn fetch_top_pvp_kills(
     pool: &PgPool,
     limit: i32,
@@ -69,7 +69,7 @@ pub async fn fetch_top_pvp_kills(
             COALESCE((data->'STATS'->>'GLD')::bigint, 0) AS gold
         FROM characters
         WHERE is_gm = FALSE
-        ORDER BY user_kills DESC
+        ORDER BY user_kills DESC, name ASC
         LIMIT $1
         ",
     )

@@ -3,5 +3,6 @@
 //! See the binary crate documentation for supported data exports and usage.
 
 pub mod cdn;
+pub mod manifest;
 pub mod queries;
 pub mod serialization;

@@ -8,6 +8,10 @@ Queries PostgreSQL for game data and uploads them to CDN storage (Cloudflare R2)
 
 **CDN-First Architecture**: Game data exports update twice daily via cron and upload directly to CDN storage. This eliminates the need for a continuously-running API server, reducing resource consumption and operational costs. Hosting JSON files on a CDN instead of serving them through a live API server is inherently more resilient to DDoS attacks, which is a frequent issue in the Argentum Online community.
 
+**Manifest-Based Change Detection**: Uses SHA-256 hashing to detect content changes before uploading to CDN. Each export file is hashed (excluding timestamp) and compared against stored hashes in PostgreSQL. Only files with changed content are uploaded, reducing CDN costs and write operations. The manifest file itself is only updated when at least one data file changes.
+
+**Cache Control Strategy**: Data files use 1-year immutable cache (`max-age=31536000, immutable`), manifest file uses 1-minute cache (`max-age=60`). Clients should check/fetch the short-cached manifest first, then fetch data files only if hashes differ. The immutable cache works because file hashes serve as content identifiers—changed data gets a new hash.
+
 **Optional Filesystem Output**: By default, JSON files are NOT written to disk - they're uploaded directly to CDN. Use `--write-to-disk` flag for local testing/debugging only.
 
 **GM Filtering**: Characters flagged as game masters are automatically excluded from public data exports.
