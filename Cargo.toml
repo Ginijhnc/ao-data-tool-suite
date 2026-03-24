@@ -28,8 +28,11 @@ anyhow = "1.0.100"
 rayon = "1.11.0"
 dotenvy = "0.15.7"
 chrono = { version = "0.4.44", features = ["serde"] }
-testcontainers = "0.26.3"
-testcontainers-modules = { version = "0.14.0", features = ["postgres"] }
+aws-sdk-s3 = "1.127.0"
+aws-config = "1.8.15"
+aws-credential-types = "1.2.14"
+testcontainers = "0.27.2"
+testcontainers-modules = { version = "0.15.0", features = ["postgres"] }
 pretty_assertions = "1.4.1"
 tempfile = "3.24.0"
 sysinfo = "0.38.3"

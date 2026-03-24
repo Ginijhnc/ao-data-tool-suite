@@ -1,7 +1,7 @@
-//! Database query functions for fetching ranking data.
+//! Database query functions for fetching game data.
 //!
-//! This module provides functions to retrieve character data from `PostgreSQL`
-//! ordered by different ranking criteria.
+//! This module provides functions to retrieve game data from `PostgreSQL`
+//! ordered by various criteria for export to static JSON files.
 
 mod characters;
 
