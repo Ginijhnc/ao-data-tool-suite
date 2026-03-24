@@ -12,7 +12,7 @@ use anyhow::Result;
 use clap::Parser;
 use tracing::info;
 
-use ao_sql_to_static_files::cdn::{R2Client, R2Config};
+use ao_sql_to_static_files::cdn::{R2Config, upload_with_manifest};
 use ao_sql_to_static_files::queries::{fetch_top_level, fetch_top_pvp_kills};
 use ao_sql_to_static_files::serialization::{
     serialize_export_data, write_export_file,
@@ -87,49 +87,33 @@ async fn main() -> Result<()> {
     // Connect to database with single connection (batch job)
     let pool = ao_shared::create_pool(1).await?;
 
-    // Fetch and upload/write level ranking
+    // Fetch data
     info!("Consultando ranking por nivel...");
     let level_data = fetch_top_level(&pool, args.ranking_limit).await?;
 
-    // Fetch and upload/write PvP kills ranking
     info!("Consultando ranking por asesinatos PvP...");
     let pvp_data = fetch_top_pvp_kills(&pool, args.ranking_limit).await?;
 
-    // Output data based on mode
     if args.write_to_disk {
+        // Disk mode: no manifest, no change detection
+        let level_json = serialize_export_data(level_data)?;
+        let pvp_json = serialize_export_data(pvp_data)?;
+
         write_export_file(
             &args.output_dir,
             "characters/top-by-level.json",
-            level_data,
+            &level_json,
         )?;
         write_export_file(
             &args.output_dir,
             "characters/top-by-kills.json",
-            pvp_data,
+            &pvp_json,
         )?;
     } else {
-        // Initialize R2 client and upload to CDN
-        info!("Inicializando cliente R2 para subida a CDN...");
+        // CDN mode: hash-based change detection via database
         let r2_config = R2Config::from_env()?;
-        let r2_client = R2Client::new(&r2_config)?;
 
-        info!(
-            "Ranking por nivel obtenido ({} entradas) - subiendo a CDN...",
-            level_data.len()
-        );
-        let level_json = serialize_export_data(level_data)?;
-        r2_client
-            .upload_json("characters/top-by-level.json", level_json)
-            .await?;
-
-        info!(
-            "Ranking por asesinatos obtenido ({} entradas) - subiendo a CDN...",
-            pvp_data.len()
-        );
-        let pvp_json = serialize_export_data(pvp_data)?;
-        r2_client
-            .upload_json("characters/top-by-kills.json", pvp_json)
-            .await?;
+        upload_with_manifest(&pool, &r2_config, level_data, pvp_data).await?;
     }
 
     let elapsed = start.elapsed();

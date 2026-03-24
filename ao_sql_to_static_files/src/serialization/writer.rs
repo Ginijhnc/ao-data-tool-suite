@@ -6,17 +6,14 @@ use std::fs;
 use std::path::Path;
 
 use anyhow::{Context, Result};
-use serde::Serialize;
 
-use super::json::serialize_export_data;
-
-/// Writes export data to a JSON file.
+/// Writes a pre-serialized JSON string to a file.
 ///
-/// Creates parent directories if needed and outputs pretty-printed JSON.
-pub fn write_export_file<T: Serialize>(
+/// Creates parent directories if needed.
+pub fn write_export_file(
     output_dir: &Path,
     filename: &str,
-    data: Vec<T>,
+    json_content: &str,
 ) -> Result<()> {
     let file_path = output_dir.join(filename);
 
@@ -27,11 +24,8 @@ pub fn write_export_file<T: Serialize>(
         })?;
     }
 
-    // Serialize data to JSON
-    let json = serialize_export_data(data)?;
-
     // Write to file
-    fs::write(&file_path, json).with_context(|| {
+    fs::write(&file_path, json_content).with_context(|| {
         format!("Error al escribir archivo: {}", file_path.display())
     })?;
 

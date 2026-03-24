@@ -50,7 +50,7 @@ impl R2Client {
         })
     }
 
-    /// Uploads raw bytes to R2 with specified content type.
+    /// Uploads raw bytes to R2 with specified content type and cache control.
     ///
     /// Generic upload method for any file format.
     pub async fn upload(
@@ -58,6 +58,7 @@ impl R2Client {
         key: &str,
         content: Vec<u8>,
         content_type: &str,
+        cache_control: &str,
     ) -> Result<()> {
         let byte_stream = ByteStream::from(content);
 
@@ -67,7 +68,7 @@ impl R2Client {
             .key(key)
             .body(byte_stream)
             .content_type(content_type)
-            .cache_control("public, max-age=1800")
+            .cache_control(cache_control)
             .send()
             .await
             .with_context(|| format!("Error al subir archivo a R2: {key}"))?;
@@ -77,16 +78,22 @@ impl R2Client {
         Ok(())
     }
 
-    /// Uploads JSON content to R2.
+    /// Uploads JSON content to R2 with specified cache control.
     ///
     /// Convenience wrapper for JSON uploads.
     pub async fn upload_json(
         &self,
         key: &str,
         json_content: String,
+        cache_control: &str,
     ) -> Result<()> {
-        self.upload(key, json_content.into_bytes(), "application/json")
-            .await
+        self.upload(
+            key,
+            json_content.into_bytes(),
+            "application/json",
+            cache_control,
+        )
+        .await
     }
 
     /// Uploads file content with auto-detected content type.
@@ -97,6 +104,7 @@ impl R2Client {
         key: &str,
         content: Vec<u8>,
         file_extension: &str,
+        cache_control: &str,
     ) -> Result<()> {
         let content_type = match file_extension {
             "json" => "application/json",
@@ -104,6 +112,6 @@ impl R2Client {
             _ => "application/octet-stream",
         };
 
-        self.upload(key, content, content_type).await
+        self.upload(key, content, content_type, cache_control).await
     }
 }

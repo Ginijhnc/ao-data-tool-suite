@@ -55,3 +55,23 @@ pub fn serialize_export_data<T: Serialize>(data: Vec<T>) -> Result<String> {
     serde_json::to_string_pretty(&export_file)
         .context("Error al serializar datos a JSON")
 }
+
+/// Serializes only the data array for hash calculation.
+///
+/// This excludes the timestamp to ensure identical data produces identical hashes.
+pub fn serialize_data_for_hash<T: Serialize>(data: &[T]) -> Result<String> {
+    // Wrap data with position indices (same as full serialization)
+    let indexed_data: Result<Vec<_>> = data
+        .iter()
+        .enumerate()
+        .map(|(index, entry)| {
+            let rank = u32::try_from(index + 1)
+                .context("Export index exceeds u32::MAX")?;
+            Ok(IndexedEntry { rank, entry })
+        })
+        .collect();
+
+    // Serialize just the data array, deterministically
+    serde_json::to_string(&indexed_data?)
+        .context("Error al serializar datos para hash")
+}
