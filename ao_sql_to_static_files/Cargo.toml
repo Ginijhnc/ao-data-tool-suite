@@ -23,6 +23,9 @@ tracing-subscriber.workspace = true
 dotenvy.workspace = true
 anyhow.workspace = true
 chrono.workspace = true
+aws-sdk-s3.workspace = true
+aws-config.workspace = true
+aws-credential-types.workspace = true
 
 [lints]
 workspace = true

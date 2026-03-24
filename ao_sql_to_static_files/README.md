@@ -2,23 +2,23 @@
 
 ### What It Does
 
-Queries PostgreSQL for game data and uploads them to CDN storage (Cloudflare R2). Rankings are exported with timestamps and assigned positions, ready to be served directly to game clients or web frontends.
+Queries PostgreSQL for game data and uploads them to CDN storage (Cloudflare R2). Game data exports are formatted with timestamps and indexed positions, ready to be served directly to game clients or web frontends.
 
 ### Key Design Decisions
 
-**CDN-First Architecture**: Rankings update twice daily via cron and upload directly to CDN storage. This eliminates the need for a continuously-running API server, reducing resource consumption and operational costs. Hosting JSON files on a CDN instead of serving them through a live API server is inherently more resilient to DDoS attacks, which is a frequent issue in the Argentum Online community.
+**CDN-First Architecture**: Game data exports update twice daily via cron and upload directly to CDN storage. This eliminates the need for a continuously-running API server, reducing resource consumption and operational costs. Hosting JSON files on a CDN instead of serving them through a live API server is inherently more resilient to DDoS attacks, which is a frequent issue in the Argentum Online community.
 
 **Optional Filesystem Output**: By default, JSON files are NOT written to disk - they're uploaded directly to CDN. Use `--write-to-disk` flag for local testing/debugging only.
 
-**GM Filtering**: Characters flagged as game masters are automatically excluded from public rankings.
+**GM Filtering**: Characters flagged as game masters are automatically excluded from public data exports.
 
-**Flexible Output**: Rankings are exported as JSON with metadata (timestamp, rank positions) that can be consumed by any frontend without additional processing.
+**Flexible Output**: Game data is exported as JSON with metadata (timestamp, indexed positions) that can be consumed by any frontend without additional processing.
 
 ### How It Works
 
-1. **Database Query**: Fetches top characters ranked by various metrics (level, PvP kills, etc.)
+1. **Database Query**: Fetches game data ordered by various metrics (character level, PvP kills, etc.)
 2. **GM Filtering**: Excludes characters where `is_gm = TRUE`
-3. **Rank Assignment**: Assigns 1-indexed positions to each entry
+3. **Position Assignment**: Assigns 1-indexed positions to each entry
 4. **JSON Generation**: Wraps data with timestamp and writes pretty-printed JSON
 5. **Directory Creation**: Automatically creates nested output directories as needed
 
@@ -31,7 +31,14 @@ Queries PostgreSQL for game data and uploads them to CDN storage (Cloudflare R2)
 
 Set via environment variables. Copy `.env.example` to `.env` and edit as needed.
 
-**Important:** By default, `WRITE_TO_DISK=false` - rankings are only queried from the database. Set `WRITE_TO_DISK=true` for local testing/debugging to write JSON files to disk.
+**CDN Upload Mode (Default):**
+- When `WRITE_TO_DISK=false` (default), game data is uploaded directly to Cloudflare R2
+- Requires R2 credentials: `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_ENDPOINT`
+
+**Disk Write Mode (Testing/Debugging):**
+- When `WRITE_TO_DISK=true`, JSON files are written to local filesystem instead
+- R2 credentials are not required in this mode
+- Useful for local testing and debugging without CDN access
 
 ### Usage
 
@@ -47,7 +54,7 @@ cargo run --release --package ao_sql_to_static_files
 cargo run --release --package ao_sql_to_static_files -- --write-to-disk
 
 # With custom options
-cargo run --release --package ao_sql_to_static_files -- --write-to-disk --ranking-limit 100 --static-json-output-dir ./rankings
+cargo run --release --package ao_sql_to_static_files -- --write-to-disk --ranking-limit 100 --static-json-output-dir ./exports
 ```
 
 **Run (Docker):**

@@ -1,8 +1,8 @@
 //! # `ao_sql_to_static_files`
 //!
-//! Exports Argentum Online ranking data from `PostgreSQL` to static JSON files.
+//! Exports Argentum Online game data from `PostgreSQL` to static JSON files.
 //!
-//! Queries the database for character rankings and writes them to JSON files
+//! Queries the database for game data exports and writes them to JSON files
 //! suitable for CDN distribution, with configurable limits and output directories.
 
 use std::path::PathBuf;
@@ -12,8 +12,11 @@ use anyhow::Result;
 use clap::Parser;
 use tracing::info;
 
+use ao_sql_to_static_files::cdn::{R2Client, R2Config};
 use ao_sql_to_static_files::queries::{fetch_top_level, fetch_top_pvp_kills};
-use ao_sql_to_static_files::serialization::write_ranking_file;
+use ao_sql_to_static_files::serialization::{
+    serialize_export_data, write_export_file,
+};
 
 /// Command-line arguments for the ranking exporter.
 #[derive(Parser, Debug)]
@@ -68,13 +71,13 @@ async fn main() -> Result<()> {
 
     if args.write_to_disk {
         info!(
-            "Iniciando exportación de rankings (límite: {}, salida: {})",
+            "Iniciando exportación de datos (límite: {}, salida: {})",
             args.ranking_limit,
             args.output_dir.display()
         );
     } else {
         info!(
-            "Iniciando exportación de rankings (límite: {}, modo: solo CDN)",
+            "Iniciando exportación de datos (límite: {}, modo: solo CDN)",
             args.ranking_limit
         );
     }
@@ -84,40 +87,49 @@ async fn main() -> Result<()> {
     // Connect to database with single connection (batch job)
     let pool = ao_shared::create_pool(1).await?;
 
-    // Fetch and write level ranking
+    // Fetch and upload/write level ranking
     info!("Consultando ranking por nivel...");
     let level_data = fetch_top_level(&pool, args.ranking_limit).await?;
 
+    // Fetch and upload/write PvP kills ranking
+    info!("Consultando ranking por asesinatos PvP...");
+    let pvp_data = fetch_top_pvp_kills(&pool, args.ranking_limit).await?;
+
+    // Output data based on mode
     if args.write_to_disk {
-        write_ranking_file(
+        write_export_file(
             &args.output_dir,
             "characters/top-by-level.json",
             level_data,
         )?;
-    } else {
-        info!(
-            "Ranking por nivel obtenido ({} entradas) - escritura a disco deshabilitada",
-            level_data.len()
-        );
-        // TODO: Upload to CDN here
-    }
-
-    // Fetch and write PvP kills ranking
-    info!("Consultando ranking por asesinatos PvP...");
-    let pvp_data = fetch_top_pvp_kills(&pool, args.ranking_limit).await?;
-
-    if args.write_to_disk {
-        write_ranking_file(
+        write_export_file(
             &args.output_dir,
             "characters/top-by-kills.json",
             pvp_data,
         )?;
     } else {
+        // Initialize R2 client and upload to CDN
+        info!("Inicializando cliente R2 para subida a CDN...");
+        let r2_config = R2Config::from_env()?;
+        let r2_client = R2Client::new(&r2_config)?;
+
         info!(
-            "Ranking por asesinatos obtenido ({} entradas) - escritura a disco deshabilitada",
+            "Ranking por nivel obtenido ({} entradas) - subiendo a CDN...",
+            level_data.len()
+        );
+        let level_json = serialize_export_data(level_data)?;
+        r2_client
+            .upload_json("characters/top-by-level.json", level_json)
+            .await?;
+
+        info!(
+            "Ranking por asesinatos obtenido ({} entradas) - subiendo a CDN...",
             pvp_data.len()
         );
-        // TODO: Upload to CDN here
+        let pvp_json = serialize_export_data(pvp_data)?;
+        r2_client
+            .upload_json("characters/top-by-kills.json", pvp_json)
+            .await?;
     }
 
     let elapsed = start.elapsed();

@@ -15,6 +15,7 @@
       "Bash(cargo clippy:*)",
       "Bash(cargo audit:*)",
       "Bash(cargo deny:*)",
+      "Bash(cargo search:*)",
       "Bash(xxd:*)",
       "Bash(gh pr view:*)",
       "Bash(gh pr diff:*)",
@@ -31,7 +32,8 @@
       "Bash(findstr:*)",
       "Bash(xxd:*)",
       "Bash(RUSTDOCFLAGS=\"-D warnings\" cargo doc --workspace --no-deps)",
-      "Bash(set RUSTDOCFLAGS=-D warnings)"
+      "Bash(set RUSTDOCFLAGS=-D warnings)",
+      "Bash(RUSTDOCFLAGS=\"-D warnings\" cargo doc:*)"
     ],
     "deny": [
       "Bash(curl:*)",

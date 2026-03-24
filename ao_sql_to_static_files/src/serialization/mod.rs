@@ -1,8 +1,10 @@
-//! JSON file writing utilities for ranking data.
+//! JSON file writing utilities for game data exports.
 //!
 //! This module handles serialization and file system operations for
-//! exporting ranking data to static JSON files.
+//! exporting game data to static JSON files.
 
+mod json;
 mod writer;
 
-pub use writer::write_ranking_file;
+pub use json::serialize_export_data;
+pub use writer::write_export_file;

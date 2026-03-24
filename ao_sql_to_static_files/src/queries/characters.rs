@@ -1,24 +1,24 @@
-//! Character ranking queries for `PostgreSQL`.
+//! Character data queries for `PostgreSQL`.
 //!
-//! Provides functions to fetch top characters ranked by level and `PvP` kills.
+//! Provides functions to fetch character data ranked by level and `PvP` kills.
 
 use anyhow::{Context, Result};
 use serde::Serialize;
 use sqlx::PgPool;
 
-/// Ranked character data extracted from the database.
+/// Character data extracted from the database.
 ///
-/// Contains all fields needed for frontend ranking display.
+/// Contains all fields needed for frontend display.
 #[derive(Debug, Serialize, sqlx::FromRow)]
 #[non_exhaustive]
 pub struct RankedCharacter {
     pub name: String,
-    pub level: i32,
-    pub exp: i32,
+    pub level: i16,
+    pub exp: i64,
     pub user_kills: i32,
-    pub class: i32,
-    pub race: i32,
-    pub gold: i32,
+    pub class: i16,
+    pub race: i16,
+    pub gold: i64,
 }
 
 /// Fetches the top characters ranked by level.
@@ -32,12 +32,12 @@ pub async fn fetch_top_level(
         r"
         SELECT
             name,
-            COALESCE((data->'STATS'->>'ELV')::int, 0) AS level,
-            COALESCE((data->'STATS'->>'EXP')::int, 0) AS exp,
+            COALESCE((data->'STATS'->>'ELV')::int, 0)::smallint AS level,
+            COALESCE((data->'STATS'->>'EXP')::bigint, 0) AS exp,
             COALESCE((data->'MUERTES'->>'USERMUERTES')::int, 0) AS user_kills,
-            COALESCE((data->'INIT'->>'CLASE')::int, 0) AS class,
-            COALESCE((data->'INIT'->>'RAZA')::int, 0) AS race,
-            COALESCE((data->'STATS'->>'GLD')::int, 0) AS gold
+            COALESCE((data->'INIT'->>'CLASE')::int, 0)::smallint AS class,
+            COALESCE((data->'INIT'->>'RAZA')::int, 0)::smallint AS race,
+            COALESCE((data->'STATS'->>'GLD')::bigint, 0) AS gold
         FROM characters
         WHERE is_gm = FALSE
         ORDER BY level DESC, exp DESC
@@ -61,12 +61,12 @@ pub async fn fetch_top_pvp_kills(
         r"
         SELECT
             name,
-            COALESCE((data->'STATS'->>'ELV')::int, 0) AS level,
-            COALESCE((data->'STATS'->>'EXP')::int, 0) AS exp,
+            COALESCE((data->'STATS'->>'ELV')::int, 0)::smallint AS level,
+            COALESCE((data->'STATS'->>'EXP')::bigint, 0) AS exp,
             COALESCE((data->'MUERTES'->>'USERMUERTES')::int, 0) AS user_kills,
-            COALESCE((data->'INIT'->>'CLASE')::int, 0) AS class,
-            COALESCE((data->'INIT'->>'RAZA')::int, 0) AS race,
-            COALESCE((data->'STATS'->>'GLD')::int, 0) AS gold
+            COALESCE((data->'INIT'->>'CLASE')::int, 0)::smallint AS class,
+            COALESCE((data->'INIT'->>'RAZA')::int, 0)::smallint AS race,
+            COALESCE((data->'STATS'->>'GLD')::bigint, 0) AS gold
         FROM characters
         WHERE is_gm = FALSE
         ORDER BY user_kills DESC
