@@ -4,9 +4,6 @@ use std::process::Command;
 use pretty_assertions::assert_eq;
 use sqlx::PgPool;
 use tempfile::TempDir;
-use testcontainers::ContainerAsync;
-use testcontainers::runners::AsyncRunner;
-use testcontainers_modules::postgres::Postgres;
 
 use crate::e2e::entity_configs::SERVER_INI_FIXTURES;
 
@@ -79,14 +76,15 @@ pub async fn verify_entity_count(
     config: &EntityTestConfig,
     expected_count: i64,
 ) {
-    let (container, pool) = setup_test_db().await;
+    let (container, pool) = ao_shared::testing::setup_test_db().await;
     let host_port = container.get_host_port_ipv4(5432).await.unwrap();
 
     let temp_dir = TempDir::new().expect("failed to create temp dir");
     let last_exec_file = temp_dir.path().join("last_execution");
 
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_ao_data_to_sql"));
-    with_test_db_env(&mut cmd, host_port);
+    ao_shared::testing::with_test_db_env(&mut cmd, host_port);
+    cmd.current_dir(workspace_root());
     config.configure_source_dir(&mut cmd);
     cmd.env("LAST_EXECUTION_FILE", last_exec_file.to_str().unwrap());
 
@@ -119,14 +117,15 @@ pub async fn verify_entity_data_matches_fixture<T>(
         + core::fmt::Display
         + Send,
 {
-    let (container, pool) = setup_test_db().await;
+    let (container, pool) = ao_shared::testing::setup_test_db().await;
     let host_port = container.get_host_port_ipv4(5432).await.unwrap();
 
     let temp_dir = TempDir::new().expect("failed to create temp dir");
     let last_exec_file = temp_dir.path().join("last_execution");
 
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_ao_data_to_sql"));
-    with_test_db_env(&mut cmd, host_port);
+    ao_shared::testing::with_test_db_env(&mut cmd, host_port);
+    cmd.current_dir(workspace_root());
     config.configure_source_dir(&mut cmd);
     cmd.env("LAST_EXECUTION_FILE", last_exec_file.to_str().unwrap());
 
@@ -158,14 +157,6 @@ pub async fn verify_entity_data_matches_fixture<T>(
     );
 }
 
-fn get_docker_host() -> &'static str {
-    if std::env::var("TESTCONTAINERS_RYUK_DISABLED").is_ok() {
-        "host.docker.internal"
-    } else {
-        "localhost"
-    }
-}
-
 pub fn workspace_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .parent()
@@ -175,29 +166,6 @@ pub fn workspace_root() -> PathBuf {
 
 pub fn crate_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-}
-
-pub async fn setup_test_db() -> (ContainerAsync<Postgres>, PgPool) {
-    let container = Postgres::default().start().await.unwrap();
-    let host_port = container.get_host_port_ipv4(5432).await.unwrap();
-    let host = get_docker_host();
-
-    let url =
-        format!("postgres://postgres:postgres@{host}:{host_port}/postgres");
-    let pool = PgPool::connect(&url).await.unwrap();
-
-    sqlx::migrate!("./migrations").run(&pool).await.unwrap();
-
-    (container, pool)
-}
-
-pub fn with_test_db_env(cmd: &mut Command, host_port: u16) -> &mut Command {
-    cmd.current_dir(workspace_root())
-        .env("DB_HOST", get_docker_host())
-        .env("DB_PORT", host_port.to_string())
-        .env("DB_NAME", "postgres")
-        .env("DB_USER", "postgres")
-        .env("DB_PASSWORD", "postgres")
 }
 
 /// Configures source directory environment variables for the parser command.
@@ -231,7 +199,8 @@ async fn run_initial_import(
     pool: &PgPool,
 ) {
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_ao_data_to_sql"));
-    with_test_db_env(&mut cmd, host_port);
+    ao_shared::testing::with_test_db_env(&mut cmd, host_port);
+    cmd.current_dir(workspace_root());
     config.configure_source_dir(&mut cmd);
     configure_parser_env(&mut cmd, config, temp_source_dir, last_exec_file);
 
@@ -258,7 +227,8 @@ fn run_reimport(
     last_exec_file: &std::path::Path,
 ) {
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_ao_data_to_sql"));
-    with_test_db_env(&mut cmd, host_port);
+    ao_shared::testing::with_test_db_env(&mut cmd, host_port);
+    cmd.current_dir(workspace_root());
     config.configure_source_dir(&mut cmd);
     configure_parser_env(&mut cmd, config, temp_source_dir, last_exec_file);
 
@@ -284,7 +254,7 @@ pub async fn test_incremental_modification<F>(
             Box<dyn core::future::Future<Output = ()> + Send + 'a>,
         > + Send,
 {
-    let (container, pool) = setup_test_db().await;
+    let (container, pool) = ao_shared::testing::setup_test_db().await;
     let host_port = container.get_host_port_ipv4(5432).await.unwrap();
 
     let temp_dir = TempDir::new().expect("failed to create temp dir");
@@ -419,7 +389,7 @@ pub async fn test_incremental_addition<T, F>(
             Box<dyn core::future::Future<Output = ()> + Send + 'a>,
         > + Send,
 {
-    let (container, pool) = setup_test_db().await;
+    let (container, pool) = ao_shared::testing::setup_test_db().await;
     let host_port = container.get_host_port_ipv4(5432).await.unwrap();
 
     let temp_dir = TempDir::new().expect("failed to create temp dir");

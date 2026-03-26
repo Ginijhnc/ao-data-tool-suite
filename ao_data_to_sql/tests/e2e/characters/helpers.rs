@@ -4,14 +4,14 @@ use std::process::Command;
 use pretty_assertions::assert_eq;
 use tempfile::TempDir;
 
-use crate::common::{crate_dir, setup_test_db, with_test_db_env};
+use crate::common::{crate_dir, workspace_root};
 
 /// Subdirectory of fixtures for characters
 pub const CHARACTER_FIXTURES: &str = "characters";
 
 /// Helper that verifies the number of characters in the database
 pub async fn verify_character_count(expected_character_count: i64) {
-    let (container, pool) = setup_test_db().await;
+    let (container, pool) = ao_shared::testing::setup_test_db().await;
     let host_port = container.get_host_port_ipv4(5432).await.unwrap();
 
     // Create a temporary directory and unique file to isolate execution tracking
@@ -21,7 +21,8 @@ pub async fn verify_character_count(expected_character_count: i64) {
     let charfile_dir = crate_dir().join("Charfile");
 
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_ao_data_to_sql"));
-    with_test_db_env(&mut cmd, host_port)
+    ao_shared::testing::with_test_db_env(&mut cmd, host_port);
+    cmd.current_dir(workspace_root())
         .env("CHARFILE_DIR", charfile_dir.to_str().unwrap())
         .env("LAST_EXECUTION_FILE", last_exec_file.to_str().unwrap());
 
@@ -45,7 +46,7 @@ pub async fn verify_character_data_matches_fixture(
     character_name: &str,
     fixture_path: PathBuf,
 ) {
-    let (container, pool) = setup_test_db().await;
+    let (container, pool) = ao_shared::testing::setup_test_db().await;
     let host_port = container.get_host_port_ipv4(5432).await.unwrap();
 
     // Create a temporary directory and unique file to isolate execution tracking
@@ -55,7 +56,8 @@ pub async fn verify_character_data_matches_fixture(
     let charfile_dir = crate_dir().join("Charfile");
 
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_ao_data_to_sql"));
-    with_test_db_env(&mut cmd, host_port)
+    ao_shared::testing::with_test_db_env(&mut cmd, host_port);
+    cmd.current_dir(workspace_root())
         .env("CHARFILE_DIR", charfile_dir.to_str().unwrap())
         .env("LAST_EXECUTION_FILE", last_exec_file.to_str().unwrap());
 

@@ -113,6 +113,8 @@ name = "ao_shared"
 version = "0.1.0"
 dependencies = [
  "sqlx",
+ "testcontainers",
+ "testcontainers-modules",
  "thiserror",
  "tokio",
 ]

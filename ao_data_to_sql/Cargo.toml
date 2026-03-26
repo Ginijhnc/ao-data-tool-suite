@@ -30,6 +30,7 @@ futures.workspace = true
 ignore.workspace = true
 
 [dev-dependencies]
+ao_shared = { path = "../ao_shared", features = ["testing"] }
 testcontainers.workspace = true
 testcontainers-modules.workspace = true
 pretty_assertions.workspace = true

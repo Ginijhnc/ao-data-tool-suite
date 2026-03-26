@@ -8,8 +8,8 @@ use std::process::Command;
 use tempfile::TempDir;
 
 use crate::common::{
-    DAKARA_CPP_FIXTURES, FIXTURES_DIR, crate_dir, setup_test_db,
-    test_server_ini_path, with_test_db_env,
+    DAKARA_CPP_FIXTURES, FIXTURES_DIR, crate_dir, test_server_ini_path,
+    workspace_root,
 };
 use crate::e2e::entity_configs::{
     MAP_FIXTURES, verify_map_count, verify_map_data_matches_fixture,
@@ -57,7 +57,7 @@ async fn map167_data_matches_expected_fixture() {
 /// Verifies incremental update: parser detects modified map and updates.
 #[tokio::test]
 async fn incremental_update_detects_modified_map() {
-    let (container, pool) = setup_test_db().await;
+    let (container, pool) = ao_shared::testing::setup_test_db().await;
     let host_port = container.get_host_port_ipv4(5432).await.unwrap();
 
     let temp_dir = TempDir::new().expect("failed to create temp dir");
@@ -70,7 +70,8 @@ async fn incremental_update_detects_modified_map() {
     fs::copy(&original_map, &temp_map).expect("failed to copy mapa1.dat");
 
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_ao_data_to_sql"));
-    with_test_db_env(&mut cmd, host_port)
+    ao_shared::testing::with_test_db_env(&mut cmd, host_port);
+    cmd.current_dir(workspace_root())
         .env("MAPS_DIR", temp_maps_dir.to_str().unwrap())
         .env("DATS_DIR", "/nonexistent")
         .env("CHARFILE_DIR", "/nonexistent")
@@ -106,7 +107,8 @@ async fn incremental_update_detects_modified_map() {
         .expect("failed to modify mapa1.dat");
 
     let mut cmd2 = Command::new(env!("CARGO_BIN_EXE_ao_data_to_sql"));
-    with_test_db_env(&mut cmd2, host_port)
+    ao_shared::testing::with_test_db_env(&mut cmd2, host_port);
+    cmd2.current_dir(workspace_root())
         .env("MAPS_DIR", temp_maps_dir.to_str().unwrap())
         .env("DATS_DIR", "/nonexistent")
         .env("CHARFILE_DIR", "/nonexistent")
@@ -127,7 +129,7 @@ async fn incremental_update_detects_modified_map() {
 /// Verifies parser skips non-map files in Maps directory.
 #[tokio::test]
 async fn parser_ignores_non_map_files() {
-    let (container, pool) = setup_test_db().await;
+    let (container, pool) = ao_shared::testing::setup_test_db().await;
     let host_port = container.get_host_port_ipv4(5432).await.unwrap();
 
     let temp_dir = TempDir::new().expect("failed to create temp dir");
@@ -145,7 +147,8 @@ async fn parser_ignores_non_map_files() {
         .expect("failed to create config.ini");
 
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_ao_data_to_sql"));
-    with_test_db_env(&mut cmd, host_port)
+    ao_shared::testing::with_test_db_env(&mut cmd, host_port);
+    cmd.current_dir(workspace_root())
         .env("MAPS_DIR", temp_maps_dir.to_str().unwrap())
         .env("DATS_DIR", "/nonexistent")
         .env("CHARFILE_DIR", "/nonexistent")

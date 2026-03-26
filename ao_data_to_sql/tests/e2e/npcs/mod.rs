@@ -3,9 +3,8 @@ use std::process::Command;
 use tempfile::TempDir;
 
 use crate::common::{
-    DAKARA_CPP_FIXTURES, FIXTURES_DIR, crate_dir, setup_test_db,
-    test_incremental_addition, test_incremental_modification,
-    test_server_ini_path, with_test_db_env,
+    DAKARA_CPP_FIXTURES, FIXTURES_DIR, crate_dir, test_incremental_addition,
+    test_incremental_modification, test_server_ini_path, workspace_root,
 };
 use crate::e2e::entity_configs::{
     NPC_CONFIG, NPC_FIXTURES, verify_npc_count,
@@ -60,7 +59,7 @@ async fn npc_61_preserves_inline_comments_when_disabled() {
         .join(DAKARA_CPP_FIXTURES)
         .join("NPC61_with_comments.json");
 
-    let (container, pool) = setup_test_db().await;
+    let (container, pool) = ao_shared::testing::setup_test_db().await;
     let host_port = container.get_host_port_ipv4(5432).await.unwrap();
 
     let temp_dir = TempDir::new().expect("failed to create temp dir");
@@ -75,7 +74,8 @@ async fn npc_61_preserves_inline_comments_when_disabled() {
     let temp_dats_dir = temp_dir.path();
 
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_ao_data_to_sql"));
-    with_test_db_env(&mut cmd, host_port)
+    ao_shared::testing::with_test_db_env(&mut cmd, host_port);
+    cmd.current_dir(workspace_root())
         .env("DATS_DIR", temp_dats_dir.to_str().unwrap())
         .env("STRIP_DAT_INLINE_COMMENTS", "false")
         .env("CHARFILE_DIR", "/nonexistent")
@@ -110,7 +110,7 @@ async fn npc_517_preserves_inline_comments_when_disabled() {
         .join(DAKARA_CPP_FIXTURES)
         .join("NPC517_with_comments.json");
 
-    let (container, pool) = setup_test_db().await;
+    let (container, pool) = ao_shared::testing::setup_test_db().await;
     let host_port = container.get_host_port_ipv4(5432).await.unwrap();
 
     let temp_dir = TempDir::new().expect("failed to create temp dir");
@@ -125,7 +125,8 @@ async fn npc_517_preserves_inline_comments_when_disabled() {
     let temp_dats_dir = temp_dir.path();
 
     let mut cmd = Command::new(env!("CARGO_BIN_EXE_ao_data_to_sql"));
-    with_test_db_env(&mut cmd, host_port)
+    ao_shared::testing::with_test_db_env(&mut cmd, host_port);
+    cmd.current_dir(workspace_root())
         .env("DATS_DIR", temp_dats_dir.to_str().unwrap())
         .env("STRIP_DAT_INLINE_COMMENTS", "false")
         .env("CHARFILE_DIR", "/nonexistent")

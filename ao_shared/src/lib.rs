@@ -12,6 +12,9 @@ use core::time::Duration;
 use sqlx::postgres::{PgPool, PgPoolOptions};
 use thiserror::Error;
 
+#[cfg(feature = "testing")]
+pub mod testing;
+
 /// Errors that can occur during database operations.
 #[derive(Error, Debug)]
 #[non_exhaustive]

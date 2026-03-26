@@ -164,7 +164,7 @@ async fn setup_database(args: &Args) -> Result<PgPool> {
         .await
         .context("Error conectando a la base de datos")?;
 
-    let migrations_path = Path::new("./ao_data_to_sql/migrations");
+    let migrations_path = Path::new("./ao_shared/migrations");
     let migrator = sqlx::migrate::Migrator::new(migrations_path)
         .await
         .context("Error cargando migraciones")?;
