@@ -7,10 +7,15 @@ license.workspace = true
 repository.workspace = true
 description = "Shared utilities for AO tools"
 
+[features]
+testing = ["dep:testcontainers", "dep:testcontainers-modules"]
+
 [dependencies]
 sqlx.workspace = true
 tokio.workspace = true
 thiserror.workspace = true
+testcontainers = { workspace = true, optional = true }
+testcontainers-modules = { workspace = true, optional = true }
 
 [lints]
 workspace = true
