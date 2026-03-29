@@ -103,12 +103,16 @@ pub struct ClientManifest {
 ///
 /// Reads all entries from `export_manifest` and serializes to pretty JSON.
 pub async fn build_client_manifest(pool: &PgPool) -> Result<String> {
-    let rows: Vec<(String, String, chrono::DateTime<chrono::Utc>)> = sqlx::query_as(
-        "SELECT file_key, hash, updated_at FROM export_manifest ORDER BY file_key",
-    )
-    .fetch_all(pool)
-    .await
-    .context("Error al consultar manifest completo")?;
+    let rows: Vec<(String, String, chrono::DateTime<chrono::Utc>)> =
+        sqlx::query_as(
+            "SELECT file_key, hash, updated_at
+         FROM export_manifest
+         WHERE file_key NOT LIKE 'characters/profiles/%'
+         ORDER BY file_key",
+        )
+        .fetch_all(pool)
+        .await
+        .context("Error al consultar manifest completo")?;
 
     let mut files = BTreeMap::new();
     for (file_key, hash, updated_at) in rows {

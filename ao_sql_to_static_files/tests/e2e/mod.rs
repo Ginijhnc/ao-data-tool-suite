@@ -4,3 +4,4 @@ mod dat_export;
 mod disk_export;
 mod manifest;
 mod queries;
+mod relevant_charfiles;

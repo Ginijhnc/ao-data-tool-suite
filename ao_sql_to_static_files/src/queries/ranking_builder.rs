@@ -5,6 +5,8 @@
 //! content, so callers can write to disk or upload to CDN without
 //! re-serializing.
 
+use std::collections::HashSet;
+
 use anyhow::Result;
 use sqlx::PgPool;
 
@@ -33,24 +35,30 @@ pub struct ExportEntry {
 
 /// Fetches and builds all ranking export entries.
 ///
-/// Each class produces one level entry and one `PvP` kills entry.
+/// Each class produces one level entry and one `PvP` kills entry. Also
+/// returns the set of unique character names across all rankings, for use
+/// by the optional relevant charfiles export.
 pub async fn build_all_ranking_exports(
     pool: &PgPool,
     limit: i32,
-) -> Result<Vec<ExportEntry>> {
+) -> Result<(Vec<ExportEntry>, HashSet<String>)> {
     let mut entries = Vec::with_capacity(2 + CHARACTER_CLASSES.len() * 2);
+    let mut names: HashSet<String> = HashSet::new();
 
     // Global rankings (all classes combined)
     let level_data = fetch_top_level(pool, limit).await?;
+    names.extend(level_data.iter().map(|c| c.name.clone()));
     entries.push(build_entry("characters/top-by-level/general", level_data)?);
 
     let pvp_data = fetch_top_pvp_kills(pool, limit).await?;
+    names.extend(pvp_data.iter().map(|c| c.name.clone()));
     entries.push(build_entry("characters/top-by-kills/general", pvp_data)?);
 
     // Per-class rankings
     for &(class_id, class_name) in CHARACTER_CLASSES {
         let class_level =
             fetch_top_level_by_class(pool, limit, class_id).await?;
+        names.extend(class_level.iter().map(|c| c.name.clone()));
         entries.push(build_entry(
             &format!("characters/top-by-level/{class_name}"),
             class_level,
@@ -58,13 +66,14 @@ pub async fn build_all_ranking_exports(
 
         let class_pvp =
             fetch_top_pvp_kills_by_class(pool, limit, class_id).await?;
+        names.extend(class_pvp.iter().map(|c| c.name.clone()));
         entries.push(build_entry(
             &format!("characters/top-by-kills/{class_name}"),
             class_pvp,
         )?);
     }
 
-    Ok(entries)
+    Ok((entries, names))
 }
 
 /// Builds a single export entry from query results.
