@@ -29,6 +29,10 @@ aws-credential-types.workspace = true
 sha2.workspace = true
 
 [dev-dependencies]
+ao_shared = { path = "../ao_shared", features = ["testing"] }
+testcontainers.workspace = true
+testcontainers-modules.workspace = true
+serde_json.workspace = true
 tempfile.workspace = true
 
 [lints]

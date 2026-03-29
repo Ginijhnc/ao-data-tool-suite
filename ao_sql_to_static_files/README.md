@@ -14,7 +14,7 @@ Queries PostgreSQL for game data and uploads them to CDN storage (Cloudflare R2)
 
 **Optional Filesystem Output**: By default, JSON files are NOT written to disk - they're uploaded directly to CDN. Use `--write-to-disk` flag for local testing/debugging only.
 
-**GM Filtering**: Characters flagged as game masters are automatically excluded from public data exports.
+**GM Filtering**: Characters flagged as game masters are automatically excluded from public data exports. The flag is set at import time by the parser crate, which marks a character as GM if their name appears in the Server.ini file.
 
 **Flexible Output**: Game data is exported as JSON with metadata (timestamp, indexed positions) that can be consumed by any frontend without additional processing.
 
@@ -75,3 +75,26 @@ docker compose run --rm json-gen ao_sql_to_static_files --write-to-disk --rankin
 ```
 
 The Docker setup automatically mounts the `exported-json` directory and connects to the host database when `--write-to-disk` is enabled.
+
+### Testing
+
+**Testing (in Docker container):**
+
+Tests run inside a Docker container. The test container spawns a temporary PostgreSQL instance via testcontainers, runs the actual binary against it, and cleans up automatically.
+
+```bash
+docker compose up --build test                                                 # Run all workspace tests
+docker compose run --rm test cargo test --package ao_sql_to_static_files               # Run using cached image
+docker compose run --rm --build test cargo test --package ao_sql_to_static_files       # Rebuild and run (use after modifying test files)
+docker compose run --rm test cargo test --package ao_sql_to_static_files <name>        # Run specific test by name
+```
+
+**Testing (locally):**
+
+Requires Docker to be running (testcontainers spawns a temporary PostgreSQL instance).
+
+```bash
+cargo test --package ao_sql_to_static_files                  # Run all tests
+cargo test --package ao_sql_to_static_files <name>           # Run specific test by name
+cargo test --package ao_sql_to_static_files -- --nocapture   # Run with output visible
+```
