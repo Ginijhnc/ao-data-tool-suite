@@ -13,10 +13,8 @@ use clap::Parser;
 use tracing::info;
 
 use ao_sql_to_static_files::cdn::{R2Config, upload_with_manifest};
-use ao_sql_to_static_files::queries::{fetch_top_level, fetch_top_pvp_kills};
-use ao_sql_to_static_files::serialization::{
-    serialize_export_data, write_export_file,
-};
+use ao_sql_to_static_files::queries::build_all_ranking_exports;
+use ao_sql_to_static_files::serialization::write_export_file;
 
 /// Command-line arguments for the ranking exporter.
 #[derive(Parser, Debug)]
@@ -87,33 +85,24 @@ async fn main() -> Result<()> {
     // Connect to database with single connection (batch job)
     let pool = ao_shared::create_pool(1).await?;
 
-    // Fetch data
-    info!("Consultando ranking por nivel...");
-    let level_data = fetch_top_level(&pool, args.ranking_limit).await?;
-
-    info!("Consultando ranking por asesinatos PvP...");
-    let pvp_data = fetch_top_pvp_kills(&pool, args.ranking_limit).await?;
+    // Fetch and build all ranking export entries
+    info!("Generando exportaciones...");
+    let entries = build_all_ranking_exports(&pool, args.ranking_limit).await?;
+    info!("{} archivos generados", entries.len());
 
     if args.write_to_disk {
         // Disk mode: no manifest, no change detection
-        let level_json = serialize_export_data(level_data)?;
-        let pvp_json = serialize_export_data(pvp_data)?;
-
-        write_export_file(
-            &args.output_dir,
-            "characters/top-by-level.json",
-            &level_json,
-        )?;
-        write_export_file(
-            &args.output_dir,
-            "characters/top-by-kills.json",
-            &pvp_json,
-        )?;
+        for entry in &entries {
+            write_export_file(
+                &args.output_dir,
+                &entry.file_key,
+                &entry.json_content,
+            )?;
+        }
     } else {
         // CDN mode: hash-based change detection via database
         let r2_config = R2Config::from_env()?;
-
-        upload_with_manifest(&pool, &r2_config, level_data, pvp_data).await?;
+        upload_with_manifest(&pool, &r2_config, entries).await?;
     }
 
     let elapsed = start.elapsed();

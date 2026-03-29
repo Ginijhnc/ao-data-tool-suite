@@ -5,7 +5,9 @@
 //! field extraction and ordering since those are best tested
 //! through the full pipeline rather than in isolation.
 
-use ao_sql_to_static_files::queries::{fetch_top_level, fetch_top_pvp_kills};
+use ao_sql_to_static_files::queries::{
+    build_all_ranking_exports, fetch_top_level, fetch_top_pvp_kills,
+};
 use ao_sql_to_static_files::serialization::{
     serialize_export_data, write_export_file,
 };
@@ -268,4 +270,111 @@ async fn disk_export_excludes_gm_characters_from_output() {
             "only Player should appear in {filename}"
         );
     }
+}
+
+// Verifies that build_all_ranking_exports produces one file per class per ranking type,
+// plus two global files. Characters must appear only in their class-specific files,
+// global files must contain all characters, and unrepresented classes must produce
+// files with empty data arrays.
+#[tokio::test]
+async fn disk_export_per_class_creates_correct_files() {
+    let (_container, pool) = setup_test_db().await;
+    let output_dir = tempfile::tempdir().expect("failed to create temp dir");
+
+    // Class 1 (Mage): 2 characters
+    insert_test_character(
+        &pool, "Mage1", 45, 999_999, 50, 1, 1, 50_000, false,
+    )
+    .await;
+    insert_test_character(
+        &pool, "Mage2", 30, 100_000, 20, 1, 1, 10_000, false,
+    )
+    .await;
+    // Class 3 (Warrior): 1 character
+    insert_test_character(
+        &pool, "Warrior1", 40, 500_000, 200, 3, 2, 30_000, false,
+    )
+    .await;
+
+    let expected_count =
+        2 + ao_sql_to_static_files::queries::CHARACTER_CLASSES.len() * 2;
+    let entries = build_all_ranking_exports(&pool, 50)
+        .await
+        .expect("build failed");
+    assert_eq!(
+        entries.len(),
+        expected_count,
+        "should produce 2 global + 2 per class per ranking type"
+    );
+
+    for entry in &entries {
+        write_export_file(
+            output_dir.path(),
+            &entry.file_key,
+            &entry.json_content,
+        )
+        .expect("write failed");
+    }
+
+    // Per-class file for mage (class 1) should have 2 entries
+    let mage_level =
+        read_json_data(output_dir.path(), "characters/top-by-level/mage.json");
+    assert_eq!(
+        mage_level.len(),
+        2,
+        "mage level file should have 2 characters"
+    );
+    assert!(
+        mage_level.iter().all(|c| c["class"] == 1),
+        "mage file should only contain class 1"
+    );
+
+    // Per-class file for warrior (class 3) should have 1 entry
+    let warrior_level = read_json_data(
+        output_dir.path(),
+        "characters/top-by-level/warrior.json",
+    );
+    assert_eq!(
+        warrior_level.len(),
+        1,
+        "warrior level file should have 1 character"
+    );
+
+    // Unrepresented class (thief, class 5) should have empty data
+    let thief_level = read_json_data(
+        output_dir.path(),
+        "characters/top-by-level/thief.json",
+    );
+    assert!(
+        thief_level.is_empty(),
+        "unrepresented class should have empty data"
+    );
+
+    // Global file should have all 3 characters
+    let global_level = read_json_data(
+        output_dir.path(),
+        "characters/top-by-level/general.json",
+    );
+    assert_eq!(
+        global_level.len(),
+        3,
+        "global level file should have all characters"
+    );
+}
+
+/// Reads a JSON export file and returns the data array.
+fn read_json_data(
+    base: &std::path::Path,
+    filename: &str,
+) -> Vec<serde_json::Value> {
+    let content = std::fs::read_to_string(base.join(filename))
+        .unwrap_or_else(|_| panic!("failed to read {filename}"));
+    let parsed: serde_json::Value = serde_json::from_str(&content)
+        .unwrap_or_else(|_| panic!("invalid JSON in {filename}"));
+    parsed
+        .get("data")
+        .unwrap_or_else(|| panic!("missing data in {filename}"))
+        .as_array()
+        .unwrap_or_else(|| panic!("data not an array in {filename}"))
+        .clone()
 }
