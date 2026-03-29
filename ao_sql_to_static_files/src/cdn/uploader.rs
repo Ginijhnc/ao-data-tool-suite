@@ -6,8 +6,7 @@ use anyhow::Result;
 use tracing::info;
 
 use crate::manifest;
-use crate::queries::RankedCharacter;
-use crate::serialization::{serialize_data_for_hash, serialize_export_data};
+use crate::queries::ExportEntry;
 
 use super::{R2Client, R2Config};
 
@@ -18,31 +17,15 @@ use super::{R2Client, R2Config};
 pub async fn upload_with_manifest(
     pool: &sqlx::PgPool,
     r2_config: &R2Config,
-    level_data: Vec<RankedCharacter>,
-    pvp_data: Vec<RankedCharacter>,
+    entries: Vec<ExportEntry>,
 ) -> Result<()> {
     let r2_client = R2Client::new(r2_config)?;
     let mut any_changed = false;
 
-    // Process level ranking
-    any_changed |= upload_ranking_if_changed(
-        pool,
-        &r2_client,
-        "characters/top-by-level",
-        "characters/top-by-level.json",
-        &level_data,
-    )
-    .await?;
-
-    // Process PvP ranking
-    any_changed |= upload_ranking_if_changed(
-        pool,
-        &r2_client,
-        "characters/top-by-kills",
-        "characters/top-by-kills.json",
-        &pvp_data,
-    )
-    .await?;
+    for entry in &entries {
+        any_changed |=
+            upload_entry_if_changed(pool, &r2_client, entry).await?;
+    }
 
     if any_changed {
         upload_manifest(pool, &r2_client).await?;
@@ -53,39 +36,34 @@ pub async fn upload_with_manifest(
     Ok(())
 }
 
-/// Uploads a single ranking file if its data has changed.
+/// Uploads a single export entry if its content has changed.
 ///
 /// Returns true if the file was uploaded.
-async fn upload_ranking_if_changed(
+async fn upload_entry_if_changed(
     pool: &sqlx::PgPool,
     r2_client: &R2Client,
-    manifest_key: &str,
-    r2_key: &str,
-    data: &[RankedCharacter],
+    entry: &ExportEntry,
 ) -> Result<bool> {
-    // Hash only the data, without timestamp
-    let data_for_hash = serialize_data_for_hash(data)?;
-    let hash = manifest::sha256_hex(&data_for_hash);
-    let stored = manifest::get_stored_hash(pool, manifest_key).await?;
+    let hash = manifest::sha256_hex(&entry.hash_content);
+    let stored = manifest::get_stored_hash(pool, &entry.manifest_key).await?;
 
     if stored.as_deref() == Some(hash.as_str()) {
-        info!("Sin cambios en {manifest_key} - omitiendo subida");
+        info!("Sin cambios en {} - omitiendo subida", entry.manifest_key);
         return Ok(false);
     }
 
-    // Data changed - serialize with timestamp and upload
-    info!("Cambio detectado en {manifest_key} - subiendo a CDN...");
-    let json_with_timestamp = serialize_export_data(data.to_vec())?;
-
+    info!(
+        "Cambio detectado en {} - subiendo a CDN...",
+        entry.manifest_key
+    );
     r2_client
         .upload_json(
-            r2_key,
-            json_with_timestamp,
+            &entry.file_key,
+            entry.json_content.clone(),
             manifest::DATA_FILE_CACHE_CONTROL,
         )
         .await?;
-
-    manifest::upsert_hash(pool, manifest_key, &hash).await?;
+    manifest::upsert_hash(pool, &entry.manifest_key, &hash).await?;
     Ok(true)
 }
 
