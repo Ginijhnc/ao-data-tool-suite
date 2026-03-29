@@ -298,7 +298,7 @@ async fn disk_export_per_class_creates_correct_files() {
 
     let expected_count =
         2 + ao_sql_to_static_files::queries::CHARACTER_CLASSES.len() * 2;
-    let entries = build_all_ranking_exports(&pool, 50)
+    let (entries, _) = build_all_ranking_exports(&pool, 50)
         .await
         .expect("build failed");
     assert_eq!(

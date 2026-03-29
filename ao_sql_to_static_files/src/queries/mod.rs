@@ -6,6 +6,7 @@
 mod characters;
 mod dats;
 mod ranking_builder;
+mod relevant_charfiles;
 
 pub use characters::{
     CHARACTER_CLASSES, RankedCharacter, fetch_top_level,
@@ -14,3 +15,4 @@ pub use characters::{
 };
 pub use dats::build_all_dat_exports;
 pub use ranking_builder::{ExportEntry, build_all_ranking_exports};
+pub use relevant_charfiles::build_all_charfile_exports;

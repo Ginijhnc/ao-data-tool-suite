@@ -14,7 +14,8 @@ use tracing::info;
 
 use ao_sql_to_static_files::cdn::{R2Config, upload_with_manifest};
 use ao_sql_to_static_files::queries::{
-    build_all_dat_exports, build_all_ranking_exports,
+    build_all_charfile_exports, build_all_dat_exports,
+    build_all_ranking_exports,
 };
 use ao_sql_to_static_files::serialization::write_export_file;
 
@@ -51,6 +52,15 @@ struct Args {
         help = "Directorio de salida para archivos JSON"
     )]
     output_dir: PathBuf,
+
+    /// Export full character profiles for all ranked characters
+    #[arg(
+        long,
+        env = "EXPORT_RELEVANT_CHARFILES",
+        default_value = "false",
+        help = "Exportar perfiles completos de personajes en los rankings"
+    )]
+    export_relevant_charfiles: bool,
 }
 
 #[tokio::main]
@@ -89,12 +99,25 @@ async fn main() -> Result<()> {
 
     // Fetch and build all ranking export entries
     info!("Generando exportaciones...");
-    let mut entries =
+    let (mut entries, ranked_names) =
         build_all_ranking_exports(&pool, args.ranking_limit).await?;
 
     let dat_entries = build_all_dat_exports(&pool).await?;
     info!("{} archivos de tablas .dat generados", dat_entries.len());
     entries.extend(dat_entries);
+
+    if args.export_relevant_charfiles {
+        let charfile_entries = build_all_charfile_exports(
+            &pool,
+            ranked_names.into_iter().collect(),
+        )
+        .await?;
+        info!(
+            "{} perfiles de personajes generados",
+            charfile_entries.len()
+        );
+        entries.extend(charfile_entries);
+    }
 
     info!("{} archivos generados", entries.len());
 

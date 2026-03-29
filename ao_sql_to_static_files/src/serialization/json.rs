@@ -80,6 +80,25 @@ pub fn serialize_flat_export<T: Serialize>(data: Vec<T>) -> Result<String> {
         .context("Error al serializar datos planos a JSON")
 }
 
+/// Serializes a single data object with a timestamp wrapper.
+///
+/// Used for character profile exports where data is one JSON object,
+/// not a collection.
+pub fn serialize_single_export(data: &serde_json::Value) -> Result<String> {
+    #[derive(Serialize)]
+    struct SingleExport<'a> {
+        generated_at: String,
+        data: &'a serde_json::Value,
+    }
+
+    let export = SingleExport {
+        generated_at: chrono::Utc::now().to_rfc3339(),
+        data,
+    };
+    serde_json::to_string_pretty(&export)
+        .context("Error al serializar perfil a JSON")
+}
+
 /// Serializes only the data array for hash calculation.
 ///
 /// This excludes the timestamp to ensure identical data produces identical hashes.
