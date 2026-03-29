@@ -13,7 +13,9 @@ use clap::Parser;
 use tracing::info;
 
 use ao_sql_to_static_files::cdn::{R2Config, upload_with_manifest};
-use ao_sql_to_static_files::queries::build_all_ranking_exports;
+use ao_sql_to_static_files::queries::{
+    build_all_dat_exports, build_all_ranking_exports,
+};
 use ao_sql_to_static_files::serialization::write_export_file;
 
 /// Command-line arguments for the ranking exporter.
@@ -87,7 +89,13 @@ async fn main() -> Result<()> {
 
     // Fetch and build all ranking export entries
     info!("Generando exportaciones...");
-    let entries = build_all_ranking_exports(&pool, args.ranking_limit).await?;
+    let mut entries =
+        build_all_ranking_exports(&pool, args.ranking_limit).await?;
+
+    let dat_entries = build_all_dat_exports(&pool).await?;
+    info!("{} archivos de tablas .dat generados", dat_entries.len());
+    entries.extend(dat_entries);
+
     info!("{} archivos generados", entries.len());
 
     if args.write_to_disk {

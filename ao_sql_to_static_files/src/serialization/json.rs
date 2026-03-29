@@ -56,6 +56,30 @@ pub fn serialize_export_data<T: Serialize>(data: Vec<T>) -> Result<String> {
         .context("Error al serializar datos a JSON")
 }
 
+/// Wrapper for flat (non-ranked) data exports.
+///
+/// Contains timestamp metadata and raw data entries (no rank indices).
+#[derive(Serialize)]
+struct FlatDataExport<T> {
+    /// ISO-8601 timestamp of when the file was generated
+    generated_at: String,
+    /// Raw data entries without rank indices
+    data: Vec<T>,
+}
+
+/// Serializes a flat data export (no rank indices) to pretty JSON.
+///
+/// Wraps data with a timestamp. Unlike `serialize_export_data`, entries
+/// are not wrapped with position indices since dat tables are not rankings.
+pub fn serialize_flat_export<T: Serialize>(data: Vec<T>) -> Result<String> {
+    let export = FlatDataExport {
+        generated_at: chrono::Utc::now().to_rfc3339(),
+        data,
+    };
+    serde_json::to_string_pretty(&export)
+        .context("Error al serializar datos planos a JSON")
+}
+
 /// Serializes only the data array for hash calculation.
 ///
 /// This excludes the timestamp to ensure identical data produces identical hashes.

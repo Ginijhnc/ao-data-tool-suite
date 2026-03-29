@@ -4,6 +4,7 @@
 //! ordered by various criteria for export to static JSON files.
 
 mod characters;
+mod dats;
 mod ranking_builder;
 
 pub use characters::{
@@ -11,4 +12,5 @@ pub use characters::{
     fetch_top_level_by_class, fetch_top_pvp_kills,
     fetch_top_pvp_kills_by_class,
 };
+pub use dats::build_all_dat_exports;
 pub use ranking_builder::{ExportEntry, build_all_ranking_exports};
