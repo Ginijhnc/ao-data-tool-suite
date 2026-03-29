@@ -6,5 +6,7 @@
 mod json;
 mod writer;
 
-pub use json::{serialize_data_for_hash, serialize_export_data};
+pub use json::{
+    serialize_data_for_hash, serialize_export_data, serialize_flat_export,
+};
 pub use writer::write_export_file;
